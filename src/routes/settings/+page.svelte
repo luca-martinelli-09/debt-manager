@@ -6,6 +6,7 @@
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { db } from '$lib/db';
 	import { contactsQuery } from '$lib/db.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { setGeminiSettings, setMyContactId, userSettings } from '$lib/settings.svelte';
 	import {
 		AlertTriangle,
@@ -37,9 +38,9 @@
 			a.click();
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
-			toast.success('Dati esportati con successo');
+			toast.success(m.data_exported_success());
 		} catch (error) {
-			toast.error("Errore durante l'esportazione dei dati");
+			toast.error(m.export_error());
 			console.error(error);
 		}
 	}
@@ -59,7 +60,7 @@
 
 	async function performImport(data: any) {
 		if (!data.contacts || !data.groups || !data.expenses || !data.settlements) {
-			throw new Error('Formato dati non valido');
+			throw new Error(m.invalid_data_format());
 		}
 		await db.transaction(
 			'rw',
@@ -93,12 +94,12 @@
 		reader.onload = async (event) => {
 			try {
 				const data = JSON.parse(event.target?.result as string);
-				if (confirm("L'importazione sovrascriverà i dati esistenti. Continuare?")) {
+				if (confirm(m.import_overwrite_confirm())) {
 					await performImport(data);
-					toast.success('Dati importati con successo');
+					toast.success(m.data_imported_success());
 				}
 			} catch (error) {
-				toast.error("Errore durante l'importazione: " + (error as Error).message);
+				toast.error(m.import_error_prefix() + (error as Error).message);
 				console.error(error);
 			}
 		};
@@ -106,11 +107,7 @@
 	}
 
 	async function resetDatabase() {
-		if (
-			confirm(
-				'SEI SICURO? Questa azione eliminerà PERMANENTEMENTE tutti i contatti, gruppi e spese.'
-			)
-		) {
+		if (confirm(m.reset_db_confirm())) {
 			try {
 				await db.transaction(
 					'rw',
@@ -124,10 +121,10 @@
 						await db.settings.clear();
 					}
 				);
-				toast.success('Database resettato');
+				toast.success(m.db_reset_success());
 				window.location.reload();
 			} catch (error) {
-				toast.error('Errore durante il reset');
+				toast.error(m.reset_error());
 			}
 		}
 	}
@@ -139,7 +136,7 @@
 	let connectToId = $state<string>('');
 	let isConnecting = $state(false);
 	let isHost = $state(false);
-	let syncStatus = $state<string>('Disconnesso');
+	let syncStatus = $state<string>(m.disconnected());
 	let PeerJS: any;
 
 	let geminiApiKeyInput = $state('');
@@ -217,7 +214,7 @@
 
 	async function saveGeminiSettings() {
 		setGeminiSettings(geminiApiKeyInput, geminiModelInput);
-		toast.success('Impostazioni Gemini salvate');
+		toast.success(m.gemini_settings_saved());
 
 		// Refetch models if API key changed
 		if (geminiApiKeyInput !== userSettings.geminiApiKey) {
@@ -234,15 +231,14 @@
 	async function startHosting() {
 		if (!PeerJS) return;
 		isConnecting = true;
-		syncStatus = 'Generazione ID...';
+		syncStatus = m.generating_id();
 
 		peer = new PeerJS();
 
 		peer.on('open', async (id: string) => {
 			peerId = id;
 			isHost = true;
-			syncStatus =
-				'In attesa di connessione... (Scansiona il QR con un altro dispositivo per scaricare i dati)';
+			syncStatus = m.waiting_connection();
 			isConnecting = false;
 			try {
 				qrCodeUrl = await QRCode.toDataURL(id, { margin: 1, width: 250 });
@@ -252,13 +248,13 @@
 		});
 
 		peer.on('connection', (conn: any) => {
-			syncStatus = 'Dispositivo connesso! Invio dati...';
+			syncStatus = m.device_connected_sending();
 			conn.on('open', async () => {
 				try {
 					const data = await getFullExportData();
 					conn.send({ type: 'sync_data', payload: data });
-					toast.success('Dati inviati al dispositivo remoto!');
-					syncStatus = 'Sincronizzazione completata.';
+					toast.success(m.data_sent_success());
+					syncStatus = m.sync_completed_success();
 					setTimeout(() => {
 						peer.destroy();
 						peer = null;
@@ -266,16 +262,16 @@
 						qrCodeUrl = '';
 					}, 3000);
 				} catch (e) {
-					toast.error("Errore durante l'invio dei dati.");
-					syncStatus = 'Errore invio.';
+					toast.error(m.send_data_error());
+					syncStatus = m.send_error();
 				}
 			});
 		});
 
 		peer.on('error', (err: any) => {
 			console.error(err);
-			toast.error('Errore P2P: ' + err.message);
-			syncStatus = 'Errore P2P';
+			toast.error(m.p2p_error_prefix() + err.message);
+			syncStatus = m.p2p_error();
 			isConnecting = false;
 		});
 	}
@@ -283,34 +279,30 @@
 	function connectAndReceive() {
 		if (!PeerJS || !connectToId) return;
 		isConnecting = true;
-		syncStatus = 'Connessione in corso...';
+		syncStatus = m.connecting();
 
 		peer = new PeerJS();
 
 		peer.on('open', () => {
 			const conn = peer.connect(connectToId);
 			conn.on('open', () => {
-				syncStatus = 'Connesso. In attesa dei dati...';
+				syncStatus = m.connected_waiting_data();
 			});
 
 			conn.on('data', async (msg: any) => {
 				if (msg.type === 'sync_data') {
-					syncStatus = 'Ricezione dati in corso...';
-					if (
-						confirm(
-							'Hai ricevuto un backup remoto. Vuoi sovrascrivere il database locale corrente?'
-						)
-					) {
+					syncStatus = m.receiving_data();
+					if (confirm(m.remote_backup_received_confirm())) {
 						try {
 							await performImport(msg.payload);
-							toast.success('Sincronizzazione completata!');
-							syncStatus = 'Dati sincronizzati con successo!';
+							toast.success(m.sync_completed_success());
+							syncStatus = m.data_synced_success();
 						} catch (e) {
-							toast.error('Errore durante il salvataggio dei dati remoti.');
-							syncStatus = 'Errore nel salvataggio.';
+							toast.error(m.remote_save_error());
+							syncStatus = m.save_error_status();
 						}
 					} else {
-						syncStatus = "Sincronizzazione annullata dall'utente.";
+						syncStatus = m.sync_cancelled();
 					}
 					setTimeout(() => {
 						peer.destroy();
@@ -321,43 +313,41 @@
 			});
 
 			conn.on('error', (err: any) => {
-				toast.error('Errore di connessione.');
+				toast.error(m.connection_error());
 				console.error(err);
-				syncStatus = 'Errore di connessione.';
+				syncStatus = m.connection_error();
 			});
 		});
 
 		peer.on('error', (err: any) => {
-			toast.error('Impossibile connettersi: ' + err.message);
-			syncStatus = 'Errore P2P';
+			toast.error(m.unable_to_connect_prefix() + err.message);
+			syncStatus = m.p2p_error();
 			isConnecting = false;
 		});
 	}
 </script>
 
-<h1 class="mb-6 text-2xl font-bold">Impostazioni</h1>
+<h1 class="mb-6 text-2xl font-bold">{m.nav_settings()}</h1>
 
 <div class="grid max-w-4xl gap-6">
 	<Card.Root>
 		<Card.Header>
 			<Card.Title class="flex items-center gap-2">
-				<User class="h-5 w-5" /> Il Mio Profilo
+				<User class="h-5 w-5" />
+				{m.profile()}
 			</Card.Title>
-			<Card.Description
-				>Seleziona quale contatto ti rappresenta per poter calcolare correttamente i tuoi debiti e
-				crediti nella dashboard.</Card.Description
-			>
+			<Card.Description>{m.select_profile_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<div class="max-w-md space-y-2">
-				<Label for="myProfile">Seleziona Contatto</Label>
+				<Label for="myProfile">{m.select_contact()}</Label>
 				<select
 					id="myProfile"
 					value={userSettings.myContactId}
 					onchange={(e) => setMyContactId(e.currentTarget.value)}
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:outline-none"
 				>
-					<option value="">Nessuno (Modalità generica)</option>
+					<option value="">{m.none_generic()}</option>
 					{#each contactsQuery.value || [] as contact (contact.id)}
 						<option value={contact.id!.toString()}>{contact.name}</option>
 					{/each}
@@ -369,12 +359,10 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title class="flex items-center gap-2">
-				<Sparkles class="h-5 w-5 text-primary" /> Intelligenza Artificiale (Gemini)
+				<Sparkles class="h-5 w-5 text-primary" />
+				{m.ai_gemini_title()}
 			</Card.Title>
-			<Card.Description
-				>Configura l'assistente basato su Google Gemini per parlare con i tuoi dati o aggiungere
-				spese semplicemente inviando una foto dello scontrino.</Card.Description
-			>
+			<Card.Description>{m.ai_gemini_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<form
@@ -385,7 +373,7 @@
 				class="max-w-md space-y-4"
 			>
 				<div class="space-y-2">
-					<Label for="apiKey">API Key (Gemini / Google AI Studio)</Label>
+					<Label for="apiKey">{m.api_key_label()}</Label>
 					<InputGroup.Root>
 						<InputGroup.Input
 							id="apiKey"
@@ -409,15 +397,16 @@
 						</InputGroup.Addon>
 					</InputGroup.Root>
 					<p class="text-xs text-muted-foreground">
-						La chiave rimane salvata solo sul tuo dispositivo. <a
+						{m.key_saved_locally()}
+						<a
 							href="https://aistudio.google.com/app/apikey"
 							target="_blank"
-							class="text-primary hover:underline">Ottieni una chiave gratuita</a
+							class="text-primary hover:underline">{m.get_key()}</a
 						>
 					</p>
 				</div>
 				<div class="space-y-2">
-					<Label for="model">Modello LLM</Label>
+					<Label for="model">{m.llm_model()}</Label>
 					<div class="relative">
 						<select
 							id="model"
@@ -426,7 +415,7 @@
 							disabled={loadingModels || availableModels.length === 0}
 						>
 							{#if loadingModels}
-								<option value={geminiModelInput}>Caricamento modelli...</option>
+								<option value={geminiModelInput}>{m.loading_models()}</option>
 							{:else if availableModels.length === 0}
 								<option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
 								<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
@@ -448,7 +437,7 @@
 						{/if}
 					</div>
 				</div>
-				<Button type="submit">Salva Impostazioni AI</Button>
+				<Button type="submit">{m.save_ai_settings()}</Button>
 			</form>
 		</Card.Content>
 	</Card.Root>
@@ -456,43 +445,41 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title class="flex items-center gap-2">
-				<Share2 class="h-5 w-5" /> Sincronizzazione P2P (WebRTC)
+				<Share2 class="h-5 w-5" />
+				{m.p2p_sync_title()}
 			</Card.Title>
-			<Card.Description
-				>Trasferisci il database tra i tuoi dispositivi istantaneamente via rete (senza passare per
-				server cloud).</Card.Description
-			>
+			<Card.Description>{m.p2p_transfer_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<Tabs.Root value="send" class="w-full">
 				<Tabs.List class="grid w-full grid-cols-2">
-					<Tabs.Trigger value="send">Invia Dati</Tabs.Trigger>
-					<Tabs.Trigger value="receive">Ricevi Dati</Tabs.Trigger>
+					<Tabs.Trigger value="send">{m.send_data()}</Tabs.Trigger>
+					<Tabs.Trigger value="receive">{m.receive_data()}</Tabs.Trigger>
 				</Tabs.List>
 
 				<Tabs.Content value="send" class="space-y-4 pt-4">
 					{#if !isHost}
 						<p class="text-sm text-muted-foreground">
-							Premi il pulsante qui sotto per generare un codice QR o un ID. Inseriscilo nell'altro
-							dispositivo per inviare una copia esatta di questo database.
+							{m.p2p_host_desc()}
 						</p>
 						<Button onclick={startHosting} disabled={isConnecting}>
 							{#if isConnecting}
-								<Loader2 class="mr-2 h-4 w-4 animate-spin" /> Preparazione...
+								<Loader2 class="mr-2 h-4 w-4 animate-spin" /> {m.preparing()}
 							{:else}
-								<Share2 class="mr-2 h-4 w-4" /> Genera Codice Sync
+								<Share2 class="mr-2 h-4 w-4" /> {m.generate_sync_code()}
 							{/if}
 						</Button>
 					{:else}
 						<div class="flex flex-col items-center gap-4 py-4">
 							{#if qrCodeUrl}
 								<div class="rounded-lg border border-border bg-white p-2 shadow-sm">
-									<img src={qrCodeUrl} alt="QR Code per Sync P2P" class="h-48 w-48" />
+									<img src={qrCodeUrl} alt={m.qr_code_alt()} class="h-48 w-48" />
 								</div>
 							{/if}
 							<div class="text-center">
 								<p class="mb-1 text-sm font-bold">
-									ID Sync: <span class="rounded bg-muted px-2 py-1 text-primary">{peerId}</span>
+									{m.sync_id_label()}
+									<span class="rounded bg-muted px-2 py-1 text-primary">{peerId}</span>
 								</p>
 								<p class="mt-2 text-sm text-muted-foreground">{syncStatus}</p>
 							</div>
@@ -503,8 +490,8 @@
 									peer = null;
 									isHost = false;
 									qrCodeUrl = '';
-									syncStatus = 'Disconnesso';
-								}}>Annulla Sincronizzazione</Button
+									syncStatus = m.disconnected();
+								}}>{m.cancel_sync()}</Button
 							>
 						</div>
 					{/if}
@@ -512,15 +499,14 @@
 
 				<Tabs.Content value="receive" class="space-y-4 pt-4">
 					<p class="text-sm text-muted-foreground">
-						Inserisci l'ID Sync generato dall'altro dispositivo (oppure premi e usa la fotocamera
-						per scansionare il QR) e ricevi i dati.
+						{m.receive_sync_desc()}
 					</p>
 					<div class="space-y-1">
-						<Label>ID Sync Remoto</Label>
+						<Label>{m.remote_sync_id()}</Label>
 						<InputGroup.Root>
 							<InputGroup.Input
 								type="text"
-								placeholder="Es. abc-123-def"
+								placeholder={m.sync_id_placeholder()}
 								bind:value={connectToId}
 							/>
 							<InputGroup.Addon align="inline-end">
@@ -529,12 +515,13 @@
 									onclick={connectAndReceive}
 									disabled={!connectToId || isConnecting}
 								>
-									<ScanLine class="mr-2 h-4 w-4" /> Richiedi e Ricevi
+									<ScanLine class="mr-2 h-4 w-4" />
+									{m.request_and_receive()}
 								</InputGroup.Button>
 							</InputGroup.Addon>
 						</InputGroup.Root>
 					</div>
-					{#if syncStatus !== 'Disconnesso' && !isHost}
+					{#if syncStatus !== m.disconnected() && !isHost}
 						<p class="mt-2 text-sm font-medium text-primary">{syncStatus}</p>
 					{/if}
 				</Tabs.Content>
@@ -544,20 +531,20 @@
 
 	<Card.Root>
 		<Card.Header>
-			<Card.Title>Portabilità dei Dati</Card.Title>
-			<Card.Description
-				>Gestisci i tuoi dati localmente. Esporta per il backup o importa da un file.</Card.Description
-			>
+			<Card.Title>{m.data_portability()}</Card.Title>
+			<Card.Description>{m.data_portability_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content class="space-y-4">
 			<div class="flex flex-wrap gap-4">
 				<Button onclick={exportData} variant="outline">
-					<Download class="mr-2 h-4 w-4" /> Esporta Backup (JSON)
+					<Download class="mr-2 h-4 w-4" />
+					{m.export_backup_btn()}
 				</Button>
 
 				<div class="relative">
 					<Button variant="outline" class="w-full">
-						<Upload class="mr-2 h-4 w-4" /> Importa Backup
+						<Upload class="mr-2 h-4 w-4" />
+						{m.import_backup_btn()}
 					</Button>
 					<input
 						type="file"
@@ -573,13 +560,15 @@
 	<Card.Root class="border-destructive/50">
 		<Card.Header>
 			<Card.Title class="flex items-center text-destructive">
-				<AlertTriangle class="mr-2 h-5 w-5" /> Zona Pericolo
+				<AlertTriangle class="mr-2 h-5 w-5" />
+				{m.danger_zone_title()}
 			</Card.Title>
-			<Card.Description>Queste azioni sono irreversibili.</Card.Description>
+			<Card.Description>{m.irreversible_actions()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<Button variant="destructive" onclick={resetDatabase}>
-				<Trash2 class="mr-2 h-4 w-4" /> Cancella Tutti i Dati
+				<Trash2 class="mr-2 h-4 w-4" />
+				{m.delete_all_data_btn()}
 			</Button>
 		</Card.Content>
 	</Card.Root>

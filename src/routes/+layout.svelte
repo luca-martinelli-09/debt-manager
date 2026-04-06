@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -19,7 +20,7 @@
 		<header class="flex h-16 items-center border-b px-4 lg:px-6">
 			<Sidebar.Trigger />
 			<div class="ml-4 flex-1">
-				<h1 class="text-lg font-semibold">Debt Manager</h1>
+				<h1 class="text-lg font-semibold">{m.app_title()}</h1>
 			</div>
 		</header>
 		<div class="flex-1 p-4 md:p-6 lg:p-8">
@@ -34,7 +35,7 @@
 				class="h-14 w-14 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
 			>
 				<Plus class="h-6 w-6" />
-				<span class="sr-only">Nuova Spesa</span>
+				<span class="sr-only">{m.new_expense_sr()}</span>
 			</Button>
 		</div>
 	</main>

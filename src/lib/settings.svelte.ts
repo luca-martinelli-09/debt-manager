@@ -10,17 +10,20 @@ export const userSettings = $state({
 
 // Inizializza le impostazioni all'avvio dell'app dal DB
 if (browser) {
-	db.settings.toArray().then((settingsArray) => {
-		const settingsMap = new Map(settingsArray.map((s) => [s.key, s.value]));
-		
-		userSettings.myContactId = settingsMap.get('myContactId') || '';
-		userSettings.geminiApiKey = settingsMap.get('geminiApiKey') || '';
-		userSettings.geminiModel = settingsMap.get('geminiModel') || 'gemini-2.5-flash';
-		userSettings.isLoaded = true;
-	}).catch(err => {
-		console.error("Failed to load settings from DB", err);
-		userSettings.isLoaded = true; // Set to true even on error so UI can render
-	});
+	db.settings
+		.toArray()
+		.then((settingsArray) => {
+			const settingsMap = new Map(settingsArray.map((s) => [s.key, s.value]));
+
+			userSettings.myContactId = settingsMap.get('myContactId') || '';
+			userSettings.geminiApiKey = settingsMap.get('geminiApiKey') || '';
+			userSettings.geminiModel = settingsMap.get('geminiModel') || 'gemini-2.5-flash';
+			userSettings.isLoaded = true;
+		})
+		.catch((err) => {
+			console.error('Failed to load settings from DB', err);
+			userSettings.isLoaded = true; // Set to true even on error so UI can render
+		});
 }
 
 export async function setMyContactId(id: string) {
@@ -43,7 +46,7 @@ export async function setGeminiSettings(apiKey: string, model: string) {
 		} else {
 			await db.settings.delete('geminiApiKey');
 		}
-		
+
 		if (model) {
 			await db.settings.put({ key: 'geminiModel', value: model });
 		} else {

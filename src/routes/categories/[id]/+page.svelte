@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -23,7 +24,7 @@
 			name = cat.name;
 			color = cat.color || '#64748b';
 		} else {
-			toast.error('Categoria non trovata');
+			toast.error(m.category_not_found());
 			goto('/categories');
 		}
 		fetching = false;
@@ -32,7 +33,7 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!name) {
-			toast.error('Il nome è obbligatorio');
+			toast.error(m.name_required());
 			return;
 		}
 
@@ -42,10 +43,10 @@
 				name,
 				color
 			});
-			toast.success('Categoria aggiornata con successo');
+			toast.success(m.category_updated());
 			goto('/categories');
 		} catch (error) {
-			toast.error("Errore durante l'aggiornamento");
+			toast.error(m.update_error());
 			console.error(error);
 		} finally {
 			loading = false;
@@ -55,33 +56,33 @@
 
 <div class="mb-6">
 	<Button variant="ghost" href="/categories">
-		<ArrowLeft class="mr-2 h-4 w-4" /> Torna alle categorie
-	</Button>
+		<ArrowLeft class="mr-2 h-4 w-4" />{m.back_to_categories_btn()}</Button
+	>
 </div>
 
 {#if fetching}
-	<p class="p-8 text-center">Caricamento...</p>
+	<p class="p-8 text-center">{m.loading()}</p>
 {:else}
 	<Card.Root class="mx-auto max-w-lg">
 		<Card.Header>
-			<Card.Title>Modifica Categoria</Card.Title>
-			<Card.Description>Aggiorna il nome o il colore della categoria.</Card.Description>
+			<Card.Title>{m.edit_category()}</Card.Title>
+			<Card.Description>{m.edit_category_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<form onsubmit={handleSubmit} class="space-y-4">
 				<div class="space-y-2">
-					<Label for="name">Nome *</Label>
+					<Label for="name">{m.name()} *</Label>
 					<Input id="name" bind:value={name} required />
 				</div>
 				<div class="space-y-2">
-					<Label for="color">Colore</Label>
+					<Label for="color">{m.color()}</Label>
 					<div class="flex items-center gap-4">
 						<Input id="color" type="color" bind:value={color} class="h-10 w-16 p-1" />
 						<span class="text-sm text-muted-foreground">{color}</span>
 					</div>
 				</div>
 				<Button type="submit" class="w-full" disabled={loading}>
-					{loading ? 'Salvataggio...' : 'Aggiorna Categoria'}
+					{loading ? m.saving() : m.update_category()}
 				</Button>
 			</form>
 		</Card.Content>

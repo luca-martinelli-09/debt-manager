@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import DebtItem from '$lib/components/DebtItem.svelte';
@@ -10,10 +9,12 @@
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { db } from '$lib/db';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
 	import { ArrowLeft, Trash2, User, Wallet } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { uuidv7 } from 'uuidv7';
 
 	const id = page.params.id || '';
 	let name = $state('');
@@ -31,7 +32,7 @@
 			email = contact.email || '';
 			tel = contact.tel || '';
 		} else {
-			toast.error('Contatto non trovato');
+			toast.error(m.contact_not_found());
 			goto('/contacts');
 		}
 		fetching = false;
@@ -52,13 +53,13 @@
 	});
 
 	function getContactName(cId: string) {
-		return contactsQuery.value?.find((c) => c.id === cId)?.name || 'Sconosciuto';
+		return contactsQuery.value?.find((c) => c.id === cId)?.name || m.unknown_contact();
 	}
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!name) {
-			toast.error('Il nome è obbligatorio');
+			toast.error(m.name_required());
 			return;
 		}
 
@@ -69,9 +70,9 @@
 				email: email || undefined,
 				tel: tel || undefined
 			});
-			toast.success('Contatto aggiornato con successo');
+			toast.success(m.contact_updated());
 		} catch (error) {
-			toast.error("Errore durante l'aggiornamento del contatto");
+			toast.error(m.contact_update_error());
 			console.error(error);
 		} finally {
 			loading = false;
@@ -80,7 +81,7 @@
 
 	async function settleDebt(from: string, to: string, amount: number) {
 		if (amount <= 0) {
-			toast.error("L'importo deve essere maggiore di zero");
+			toast.error(m.amount_gt_zero());
 			return;
 		}
 		try {
@@ -92,20 +93,20 @@
 				date: new Date(),
 				createdAt: new Date()
 			});
-			toast.success('Debito saldato con successo');
+			toast.success(m.debt_settled());
 			// Chiudi il form inline
 		} catch (error) {
-			toast.error('Errore durante il saldo');
+			toast.error(m.settle_error());
 		}
 	}
 
 	async function deleteSettlement(sid: string) {
-		if (confirm('Vuoi davvero eliminare questo pagamento?')) {
+		if (confirm(m.delete_payment_confirm())) {
 			try {
 				await db.settlements.delete(sid);
-				toast.success('Pagamento eliminato');
+				toast.success(m.payment_deleted());
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
@@ -113,13 +114,13 @@
 
 <div class="mb-6 flex items-center justify-between">
 	<Button variant="ghost" href="/contacts">
-		<ArrowLeft class="mr-2 h-4 w-4" /> Torna ai contatti
-	</Button>
+		<ArrowLeft class="mr-2 h-4 w-4" />{m.back_to_contacts_btn()}</Button
+	>
 </div>
 
 {#if fetching}
 	<div class="flex justify-center p-8">
-		<p>Caricamento...</p>
+		<p>{m.loading()}</p>
 	</div>
 {:else}
 	<div class="mx-auto max-w-2xl">
@@ -131,24 +132,22 @@
 			</div>
 			<div>
 				<h1 class="text-3xl font-bold">{name}</h1>
-				<p class="text-muted-foreground">{email || tel || 'Nessun recapito'}</p>
+				<p class="text-muted-foreground">{email || tel || m.no_contact_info()}</p>
 			</div>
 		</div>
 
 		<Tabs.Root value="saldi" class="space-y-6">
 			<Tabs.List class="grid w-full grid-cols-3">
-				<Tabs.Trigger value="saldi">Debiti & Saldi</Tabs.Trigger>
-				<Tabs.Trigger value="pagamenti">Pagamenti</Tabs.Trigger>
-				<Tabs.Trigger value="dettagli">Modifica Profilo</Tabs.Trigger>
+				<Tabs.Trigger value="saldi">{m.debts_and_balances()}</Tabs.Trigger>
+				<Tabs.Trigger value="pagamenti">{m.payments()}</Tabs.Trigger>
+				<Tabs.Trigger value="dettagli">{m.edit_profile()}</Tabs.Trigger>
 			</Tabs.List>
 
 			<Tabs.Content value="saldi">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Situazione con {name}</Card.Title>
-						<Card.Description
-							>Tutti i debiti semplificati (cross-gruppo) che coinvolgono questo contatto.</Card.Description
-						>
+						<Card.Title>{m.situation_with()} {name}</Card.Title>
+						<Card.Description>{m.cross_group_debts()}</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						{#if contactDebts.length === 0}
@@ -156,7 +155,7 @@
 								class="flex flex-col items-center justify-center py-8 text-center text-muted-foreground"
 							>
 								<Wallet class="mb-4 h-8 w-8 opacity-50" />
-								<p>Tutti i conti con {name} sono in pareggio!</p>
+								<p>{m.all_settled_with()} {name} {m.are_settled()}</p>
 							</div>
 						{:else}
 							<div class="space-y-4">
@@ -169,12 +168,12 @@
 									>
 										{#snippet descriptionSnippet()}
 											{#if isDebtor}
-												<p><span class="font-bold">{name}</span> deve dare</p>
+												<p><span class="font-bold">{name}</span> {m.must_give()}</p>
 												<p class="font-bold text-destructive">
 													{debt.amount.toFixed(2)}€ a {getContactName(debt.to)}
 												</p>
 											{:else}
-												<p><span class="font-bold">{name}</span> deve ricevere</p>
+												<p><span class="font-bold">{name}</span> {m.must_receive()}</p>
 												<p class="font-bold text-emerald-500">
 													{debt.amount.toFixed(2)}€ da {getContactName(debt.from)}
 												</p>
@@ -192,7 +191,7 @@
 				<Card.Root>
 					<Card.Content class="p-0">
 						{#if contactSettlements.length === 0}
-							<p class="p-8 text-center text-muted-foreground">Nessun pagamento registrato.</p>
+							<p class="p-8 text-center text-muted-foreground">{m.no_payments()}</p>
 						{:else}
 							<div class="divide-y">
 								{#each contactSettlements as settlement (settlement.id)}
@@ -204,7 +203,7 @@
 											<div class="text-sm">
 												<p>
 													<span class="font-bold">{getContactName(settlement.fromContactId)}</span>
-													ha pagato a
+													{m.paid_to()}
 													<span class="font-bold">{getContactName(settlement.toContactId)}</span>
 												</p>
 												<p class="text-xs text-muted-foreground">
@@ -233,25 +232,25 @@
 			<Tabs.Content value="dettagli">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Dettagli Contatto</Card.Title>
-						<Card.Description>Aggiorna le informazioni di base.</Card.Description>
+						<Card.Title>{m.details()}{m.contact_label()}</Card.Title>
+						<Card.Description>{m.update_basic_info()}</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						<form onsubmit={handleSubmit} class="space-y-4">
 							<div class="space-y-2">
-								<Label for="name">Nome *</Label>
-								<Input id="name" bind:value={name} placeholder="Es. Mario Rossi" required />
+								<Label for="name">{m.name()} *</Label>
+								<Input id="name" bind:value={name} placeholder={m.example_mario()} required />
 							</div>
 							<div class="space-y-2">
-								<Label for="email">Email (opzionale)</Label>
-								<Input id="email" type="email" bind:value={email} placeholder="mario@esempio.com" />
+								<Label for="email">{m.email_optional()}</Label>
+								<Input id="email" type="email" bind:value={email} placeholder="mario@example.com" />
 							</div>
 							<div class="space-y-2">
-								<Label for="tel">Telefono (opzionale)</Label>
+								<Label for="tel">{m.phone_optional()}</Label>
 								<Input id="tel" type="tel" bind:value={tel} placeholder="+39 333 1234567" />
 							</div>
 							<Button type="submit" class="w-full" disabled={loading}>
-								{loading ? 'Salvataggio...' : 'Aggiorna Contatto'}
+								{loading ? m.saving() : m.update_contact()}
 							</Button>
 						</form>
 					</Card.Content>

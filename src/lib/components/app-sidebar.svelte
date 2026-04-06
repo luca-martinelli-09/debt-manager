@@ -1,22 +1,23 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Home, Receipt, Settings, Sparkles, Tag, User, Users } from '@lucide/svelte';
 
-	const items = [
-		{ title: 'Dashboard', url: '/', icon: Home },
-		{ title: 'Assistente AI', url: '/chat', icon: Sparkles },
-		{ title: 'Spese', url: '/expenses', icon: Receipt },
-		{ title: 'Gruppi', url: '/groups', icon: Users },
-		{ title: 'Contatti', url: '/contacts', icon: User },
-		{ title: 'Categorie', url: '/categories', icon: Tag },
-		{ title: 'Impostazioni', url: '/settings', icon: Settings }
-	];
+	let items = $derived([
+		{ title: m.nav_dashboard(), url: '/', icon: Home },
+		{ title: m.nav_ai_assistant(), url: '/chat', icon: Sparkles },
+		{ title: m.nav_expenses(), url: '/expenses', icon: Receipt },
+		{ title: m.nav_groups(), url: '/groups', icon: Users },
+		{ title: m.nav_contacts(), url: '/contacts', icon: User },
+		{ title: m.nav_categories(), url: '/categories', icon: Tag },
+		{ title: m.nav_settings(), url: '/settings', icon: Settings }
+	]);
 </script>
 
 <Sidebar.Root>
 	<Sidebar.Content>
 		<Sidebar.Group>
-			<Sidebar.GroupLabel>Debt Manager</Sidebar.GroupLabel>
+			<Sidebar.GroupLabel>{m.app_title()}</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					{#each items as item (item.title)}

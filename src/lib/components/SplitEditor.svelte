@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -22,21 +23,19 @@
 </script>
 
 <div class="space-y-4">
-	<Label>Suddivisione ({splits.length} selezionati)</Label>
+	<Label>{m.split_label()} ({splits.length} {m.selected_count()})</Label>
 	<Tabs.Root bind:value={splitType} class="w-full">
 		<Tabs.List class="grid w-full grid-cols-3">
-			<Tabs.Trigger value="equally">Equamente</Tabs.Trigger>
-			<Tabs.Trigger value="unequally">Quote</Tabs.Trigger>
-			<Tabs.Trigger value="percentage">Percentuale</Tabs.Trigger>
+			<Tabs.Trigger value="equally">{m.split_equally()}</Tabs.Trigger>
+			<Tabs.Trigger value="unequally">{m.split_unequally()}</Tabs.Trigger>
+			<Tabs.Trigger value="percentage">{m.split_percentage()}</Tabs.Trigger>
 		</Tabs.List>
 
 		<div class="mt-4 space-y-4">
 			{#if splitType === 'equally'}
 				<div class="flex items-center rounded-md bg-muted p-4 text-sm text-muted-foreground">
 					<Info class="mr-2 h-4 w-4" />
-					La spesa sarà divisa equamente tra le persone spuntate qui sotto ({splits.length > 0
-						? (amount / splits.length).toFixed(2)
-						: '0.00'}€ a testa).
+					{m.split_info()} ({splits.length > 0 ? (amount / splits.length).toFixed(2) : '0.00'}€ {m.per_person()}).
 				</div>
 			{/if}
 

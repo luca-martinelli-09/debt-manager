@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -8,7 +9,7 @@
 </script>
 
 <div class="space-y-3">
-	<Label>Allegati (Scontrini/Ricevute)</Label>
+	<Label>{m.attachments_label()}</Label>
 	<Input
 		type="file"
 		multiple
@@ -30,7 +31,7 @@
 								<div class="flex items-center gap-2">
 									<FileText class="h-4 w-4 shrink-0 text-muted-foreground" />
 									<span class="block max-w-[200px] truncate sm:max-w-xs">
-										{att instanceof File ? att.name : 'Allegato ' + (i + 1)}
+										{att instanceof File ? att.name : `${m.attachment_prefix()} ${i + 1}`}
 									</span>
 								</div>
 							</td>

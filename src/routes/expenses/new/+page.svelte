@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
@@ -107,7 +108,7 @@
 				const val = parseFloat(amountMatch[1].replace(',', '.'));
 				if (!isNaN(val)) {
 					amount = val;
-					toast.info(`Importo rilevato dall'OCR: ${val}€`);
+					toast.info(`\${m.ocr_amount_detected()} \${val}€`);
 				}
 			}
 			const lines = text.split('\n').filter((l) => l.trim().length > 3);
@@ -116,7 +117,7 @@
 			}
 		} catch (error) {
 			console.error(error);
-			toast.error('Errore durante la scansione dello scontrino');
+			toast.error(m.ocr_error());
 		} finally {
 			ocrLoading = false;
 		}
@@ -125,12 +126,12 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!title || !amount || !paidById) {
-			toast.error('Compila tutti i campi obbligatori');
+			toast.error(m.fill_required_fields());
 			return;
 		}
 
 		if (splits.length === 0) {
-			toast.error('Seleziona almeno un partecipante per la divisione');
+			toast.error(m.select_at_least_one());
 			return;
 		}
 
@@ -145,21 +146,22 @@
 			const sum = finalSplits.reduce((acc, s) => acc + s.value, 0);
 			if (Math.abs(sum - amount) > 0.01) {
 				toast.error(
-					`La somma delle quote (${sum.toFixed(2)}€) deve essere uguale all'importo totale (${amount}€)`
+					`\${m.sum_of_shares()} (\${sum.toFixed(2)}€) \${m.must_equal_amount()} (\${amount}€)`
 				);
 				return;
 			}
 		} else if (splitType === 'percentage') {
 			const sum = finalSplits.reduce((acc, s) => acc + s.value, 0);
 			if (Math.abs(sum - 100) > 0.01) {
-				toast.error(`La somma delle percentuali (${sum}%) deve essere 100%`);
+				toast.error(`\${m.sum_of_percentages()} (\${sum}%) \${m.must_be_100()}`);
 				return;
 			}
 		}
 
 		loading = true;
 		try {
-			const catName = categoriesQuery.value?.find((c) => c.id === categoryId)?.name || 'Generale';
+			const catName =
+				categoriesQuery.value?.find((c) => c.id === categoryId)?.name || m.general_category();
 			await db.expenses.add({
 				id: uuidv7(),
 				title,
@@ -174,17 +176,17 @@
 				attachments: attachments.length > 0 ? [...attachments] : undefined,
 				createdAt: new Date()
 			});
-			toast.success('Spesa aggiunta con successo');
+			toast.success(m.expense_created());
 			goto('/expenses');
 		} catch (error) {
-			toast.error('Errore durante il salvataggio della spesa');
+			toast.error(m.expense_save_error());
 			console.error(error);
 		} finally {
 			loading = false;
 		}
 	}
 	function getContactName(contactId: string) {
-		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || m.unknown_contact();
 
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
 			return name + ' (Tu)';
@@ -195,26 +197,26 @@
 
 <div class="mb-6">
 	<Button variant="ghost" href="/expenses">
-		<ArrowLeft class="mr-2 h-4 w-4" /> Torna alle spese
-	</Button>
+		<ArrowLeft class="mr-2 h-4 w-4" />{m.back_to_expenses_btn()}</Button
+	>
 </div>
 
 <div class="mx-auto max-w-2xl">
 	<Card.Root>
 		<Card.Header>
-			<Card.Title>Nuova Spesa</Card.Title>
-			<Card.Description>Aggiungi una spesa e dividila con i tuoi amici.</Card.Description>
+			<Card.Title>{m.new_expense_sr()}</Card.Title>
+			<Card.Description>{m.add_expense_desc()}</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<form onsubmit={handleSubmit} class="space-y-6">
 				<!-- Title & Amount -->
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="space-y-2">
-						<Label for="title">Titolo *</Label>
-						<Input id="title" bind:value={title} placeholder="Es. Cena Sushi" required />
+						<Label for="title">{m.title()} *</Label>
+						<Input id="title" bind:value={title} placeholder={m.example_dinner()} required />
 					</div>
 					<div class="space-y-2">
-						<Label for="amount">Importo (€) *</Label>
+						<Label for="amount">{m.amount()} (€) *</Label>
 						<InputGroup.Root>
 							<InputGroup.Input
 								id="amount"
@@ -252,11 +254,11 @@
 				<!-- Date & Category -->
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="space-y-2">
-						<Label for="date">Data</Label>
+						<Label for="date">{m.date()}</Label>
 						<Input id="date" type="date" bind:value={date} />
 					</div>
 					<div class="space-y-2">
-						<Label for="category">Categoria</Label>
+						<Label for="category">{m.category()}</Label>
 						<div class="flex gap-2">
 							<select
 								id="category"
@@ -268,7 +270,7 @@
 									<option value={cat.id!.toString()}>{cat.name}</option>
 								{/each}
 							</select>
-							<Button variant="outline" href="/categories" title="Gestisci Categorie">+</Button>
+							<Button variant="outline" href="/categories" title={m.manage_categories()}>+</Button>
 						</div>
 					</div>
 				</div>
@@ -279,21 +281,21 @@
 				<!-- Group & Payer -->
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="space-y-2">
-						<Label for="group">Gruppo (opzionale)</Label>
+						<Label for="group">{m.group_optional()}</Label>
 						<select
 							id="group"
 							bind:value={groupId}
 							onchange={handleGroupChange}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:outline-none"
 						>
-							<option value="">Nessuno (1-1)</option>
+							<option value="">{m.none_1_1()}</option>
 							{#each groupsQuery.value || [] as group (group.id)}
 								<option value={group.id!.toString()}>{group.name}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="space-y-2">
-						<Label for="payer">Chi ha pagato? *</Label>
+						<Label for="payer">{m.who_paid_asterisk()}</Label>
 						<select
 							id="payer"
 							bind:value={paidById}
@@ -311,7 +313,7 @@
 				<SplitEditor bind:splitType bind:splits {amount} {availableContacts} {getContactName} />
 
 				<Button type="submit" class="w-full" disabled={loading}>
-					{loading ? 'Salvataggio...' : 'Aggiungi Spesa'}
+					{loading ? m.saving() : m.add_expense_btn()}
 				</Button>
 			</form>
 		</Card.Content>

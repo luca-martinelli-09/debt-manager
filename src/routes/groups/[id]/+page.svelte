@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -30,7 +31,7 @@
 			name = g.name;
 			selectedMemberIds = g.memberIds;
 		} else {
-			toast.error('Gruppo non trovato');
+			toast.error(m.group_not_found());
 			goto('/groups');
 		}
 		fetching = false;
@@ -50,12 +51,12 @@
 	let simplifiedDebts = $derived(simplifyDebts(groupBalances));
 
 	function getContactName(id: string) {
-		return contactsQuery.value?.find((c) => c.id === id)?.name || 'Sconosciuto';
+		return contactsQuery.value?.find((c) => c.id === id)?.name || m.unknown_contact();
 	}
 
 	async function settleDebt(from: string, to: string, amount: number) {
 		if (amount <= 0) {
-			toast.error("L'importo deve essere maggiore di zero");
+			toast.error(m.amount_gt_zero());
 			return;
 		}
 		try {
@@ -68,19 +69,19 @@
 				groupId,
 				createdAt: new Date()
 			});
-			toast.success('Debito saldato con successo');
+			toast.success(m.debt_settled());
 		} catch (error) {
-			toast.error('Errore durante il saldo');
+			toast.error(m.settle_error());
 		}
 	}
 
 	async function deleteSettlement(id: string) {
-		if (confirm('Vuoi davvero eliminare questo pagamento?')) {
+		if (confirm(m.delete_payment_confirm())) {
 			try {
 				await db.settlements.delete(id);
-				toast.success('Pagamento eliminato');
+				toast.success(m.payment_deleted());
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
@@ -97,11 +98,11 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!name) {
-			toast.error('Il nome del gruppo è obbligatorio');
+			toast.error(m.group_name_required());
 			return;
 		}
 		if (selectedMemberIds.length === 0) {
-			toast.error('Seleziona almeno un partecipante');
+			toast.error(m.select_at_least_one_participant());
 			return;
 		}
 
@@ -111,12 +112,12 @@
 				name,
 				memberIds: [...selectedMemberIds]
 			});
-			toast.success('Gruppo aggiornato con successo');
+			toast.success(m.group_updated());
 			// Aggiorna lo state visivo per evitare un ricaricamento forzato
 			currentGroup.name = name;
 			currentGroup.memberIds = [...selectedMemberIds];
 		} catch (error) {
-			toast.error("Errore durante l'aggiornamento del gruppo");
+			toast.error(m.group_update_error());
 			console.error(error);
 		} finally {
 			loading = false;
@@ -126,14 +127,14 @@
 
 <div class="mb-6 flex items-center justify-between">
 	<Button variant="ghost" href="/groups">
-		<ArrowLeft class="mr-2 h-4 w-4" /> Torna ai gruppi
-	</Button>
+		<ArrowLeft class="mr-2 h-4 w-4" />{m.back_to_groups_btn()}</Button
+	>
 </div>
 
 {#if fetching}
-	<p class="p-8 text-center">Caricamento...</p>
+	<p class="p-8 text-center">{m.loading()}</p>
 {:else if !currentGroup}
-	<p class="p-8 text-center text-destructive">Impossibile caricare il gruppo.</p>
+	<p class="p-8 text-center text-destructive">{m.group_load_error()}</p>
 {:else}
 	<div class="mx-auto max-w-2xl">
 		<div class="mb-6 flex items-center gap-4">
@@ -144,25 +145,26 @@
 			</div>
 			<div class="flex-1">
 				<h1 class="text-3xl font-bold">{currentGroup.name}</h1>
-				<p class="text-muted-foreground">{currentGroup.memberIds.length} partecipanti</p>
+				<p class="text-muted-foreground">{currentGroup.memberIds.length} {m.participant_count()}</p>
 			</div>
 			<Button href="/expenses/new?groupId={groupId}">
-				<Receipt class="mr-2 h-4 w-4" /> Spesa
+				<Receipt class="mr-2 h-4 w-4" />
+				{m.new_expense_btn()}
 			</Button>
 		</div>
 
 		<Tabs.Root value="balances" class="space-y-6">
 			<Tabs.List class="grid w-full grid-cols-4">
-				<Tabs.Trigger value="balances">Saldi</Tabs.Trigger>
-				<Tabs.Trigger value="expenses">Spese</Tabs.Trigger>
-				<Tabs.Trigger value="settlements">Pagamenti</Tabs.Trigger>
-				<Tabs.Trigger value="modifica">Dettagli</Tabs.Trigger>
+				<Tabs.Trigger value="balances">{m.balances()}</Tabs.Trigger>
+				<Tabs.Trigger value="expenses">{m.nav_expenses()}</Tabs.Trigger>
+				<Tabs.Trigger value="settlements">{m.payments()}</Tabs.Trigger>
+				<Tabs.Trigger value="modifica">{m.details()}</Tabs.Trigger>
 			</Tabs.List>
 
 			<Tabs.Content value="balances" class="space-y-6">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Situazione Partecipanti</Card.Title>
+						<Card.Title>{m.participant_situation()}</Card.Title>
 					</Card.Header>
 					<Card.Content>
 						<div class="space-y-4">
@@ -190,10 +192,8 @@
 
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Debiti Semplificati</Card.Title>
-						<Card.Description
-							>Conti ottimizzati nel gruppo per ridurre al minimo le transazioni.</Card.Description
-						>
+						<Card.Title>{m.simplified_debts()}</Card.Title>
+						<Card.Description>{m.optimized_accounts()}</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						{#if simplifiedDebts.length === 0}
@@ -201,7 +201,7 @@
 								class="flex flex-col items-center justify-center py-8 text-center text-muted-foreground"
 							>
 								<Wallet class="mb-4 h-8 w-8 opacity-50" />
-								<p>Tutti i conti del gruppo sono in pareggio!</p>
+								<p>{m.all_group_accounts()}{m.are_settled()}</p>
 							</div>
 						{:else}
 							<div class="space-y-4">
@@ -212,7 +212,10 @@
 										onSettle={(amt) => settleDebt(debt.from, debt.to, amt)}
 									>
 										{#snippet descriptionSnippet()}
-											<p><span class="font-bold">{getContactName(debt.from)}</span> deve dare</p>
+											<p>
+												<span class="font-bold">{getContactName(debt.from)}</span>
+												{m.must_give()}
+											</p>
 											<p class="font-bold text-emerald-500">
 												{debt.amount.toFixed(2)}€ a {getContactName(debt.to)}
 											</p>
@@ -229,7 +232,7 @@
 				<Card.Root>
 					<Card.Content class="p-0">
 						{#if groupExpenses.length === 0}
-							<p class="p-8 text-center text-muted-foreground">Nessuna spesa in questo gruppo.</p>
+							<p class="p-8 text-center text-muted-foreground">{m.no_expenses_in_group()}</p>
 						{:else}
 							<div class="divide-y">
 								{#each groupExpenses as expense (expense.id)}
@@ -253,7 +256,7 @@
 												{#if (expense.attachments?.length ?? 0) > 0 || expense.attachment}
 													<Receipt class="h-3 w-3" />
 												{/if}
-												{expense.category || 'Generale'}
+												{expense.category || m.general_category()}
 											</div>
 										</div>
 									</a>
@@ -268,7 +271,7 @@
 				<Card.Root>
 					<Card.Content class="p-0">
 						{#if groupSettlements.length === 0}
-							<p class="p-8 text-center text-muted-foreground">Nessun pagamento registrato.</p>
+							<p class="p-8 text-center text-muted-foreground">{m.no_payments()}</p>
 						{:else}
 							<div class="divide-y">
 								{#each groupSettlements as settlement (settlement.id)}
@@ -280,7 +283,7 @@
 											<div class="text-sm">
 												<p>
 													<span class="font-bold">{getContactName(settlement.fromContactId)}</span>
-													ha pagato a
+													{m.paid_to()}
 													<span class="font-bold">{getContactName(settlement.toContactId)}</span>
 												</p>
 												<p class="text-xs text-muted-foreground">
@@ -309,25 +312,23 @@
 			<Tabs.Content value="modifica">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Modifica Gruppo</Card.Title>
-						<Card.Description>Aggiorna il nome o aggiungi e rimuovi partecipanti.</Card.Description>
+						<Card.Title>{m.edit()} {m.group()}</Card.Title>
+						<Card.Description>{m.update_group_desc()}</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						<form onsubmit={handleSubmit} class="space-y-6">
 							<div class="space-y-2">
-								<Label for="name">Nome Gruppo *</Label>
+								<Label for="name">{m.group_name_label()}</Label>
 								<Input id="name" bind:value={name} required />
 							</div>
 
 							<div class="space-y-3">
-								<Label>Partecipanti *</Label>
+								<Label>{m.participants()} *</Label>
 								<div class="max-h-60 space-y-1 overflow-y-auto rounded-md border p-2">
 									{#if !contactsQuery.value || contactsQuery.value.length === 0}
 										<p class="p-4 text-center text-sm text-muted-foreground">
-											Nessun contatto trovato. <a
-												href="/contacts/new"
-												class="text-primary hover:underline">Aggiungine uno</a
-											> prima.
+											{m.no_contact_found()}
+											<a href="/contacts/new" class="text-primary hover:underline">{m.add_one()}</a> prima.
 										</p>
 									{:else}
 										{#each contactsQuery.value as contact (contact.id)}
@@ -345,12 +346,13 @@
 									{/if}
 								</div>
 								<p class="text-xs text-muted-foreground">
-									Selezionati: {selectedMemberIds.length}
+									{m.selected_label()}
+									{selectedMemberIds.length}
 								</p>
 							</div>
 
 							<Button type="submit" class="w-full" disabled={loading}>
-								{loading ? 'Salvataggio...' : 'Aggiorna Gruppo'}
+								{loading ? m.saving() : m.update_group_btn()}
 							</Button>
 						</form>
 					</Card.Content>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -49,7 +50,7 @@
 			splits = expense.splits;
 			attachments = expense.attachments || (expense.attachment ? [expense.attachment] : []);
 		} else {
-			toast.error('Spesa non trovata');
+			toast.error(m.expense_not_found());
 			goto('/expenses');
 		}
 		fetching = false;
@@ -117,12 +118,12 @@
 				const val = parseFloat(amountMatch[1].replace(',', '.'));
 				if (!isNaN(val)) {
 					amount = val;
-					toast.info(`Importo aggiornato: ${val}€`);
+					toast.info(`\${m.amount_updated()} \${val}€`);
 				}
 			}
 		} catch (error) {
 			console.error(error);
-			toast.error('Errore durante la scansione dello scontrino');
+			toast.error(m.ocr_error());
 		} finally {
 			ocrLoading = false;
 		}
@@ -131,12 +132,12 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!title || !amount || !paidById) {
-			toast.error('Compila tutti i campi obbligatori');
+			toast.error(m.fill_required_fields());
 			return;
 		}
 
 		if (splits.length === 0) {
-			toast.error('Seleziona almeno un partecipante per la divisione');
+			toast.error(m.select_at_least_one());
 			return;
 		}
 
@@ -151,21 +152,22 @@
 			const sum = finalSplits.reduce((acc, s) => acc + s.value, 0);
 			if (Math.abs(sum - amount) > 0.01) {
 				toast.error(
-					`La somma delle quote (${sum.toFixed(2)}€) deve essere uguale all'importo totale (${amount}€)`
+					`\${m.sum_of_shares()} (\${sum.toFixed(2)}€) \${m.must_equal_amount()} (\${amount}€)`
 				);
 				return;
 			}
 		} else if (splitType === 'percentage') {
 			const sum = finalSplits.reduce((acc, s) => acc + s.value, 0);
 			if (Math.abs(sum - 100) > 0.01) {
-				toast.error(`La somma delle percentuali (${sum}%) deve essere 100%`);
+				toast.error(`\${m.sum_of_percentages()} (\${sum}%) \${m.must_be_100()}`);
 				return;
 			}
 		}
 
 		loading = true;
 		try {
-			const catName = categoriesQuery.value?.find((c) => c.id === categoryId)?.name || 'Generale';
+			const catName =
+				categoriesQuery.value?.find((c) => c.id === categoryId)?.name || m.general_category();
 			await db.expenses.update(id, {
 				title,
 				amount,
@@ -178,10 +180,10 @@
 				splits: finalSplits,
 				attachments: attachments.length > 0 ? [...attachments] : undefined
 			});
-			toast.success('Spesa aggiornata con successo');
+			toast.success(m.expense_updated());
 			goto('/expenses');
 		} catch (error) {
-			toast.error("Errore durante l'aggiornamento");
+			toast.error(m.update_error());
 			console.error(error);
 		} finally {
 			loading = false;
@@ -189,19 +191,19 @@
 	}
 
 	async function deleteExpense() {
-		if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
+		if (confirm(m.delete_expense_confirm())) {
 			try {
 				await db.expenses.delete(id);
-				toast.success('Spesa eliminata');
+				toast.success(m.expense_deleted());
 				goto('/expenses');
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
 
 	function getContactName(contactId: string) {
-		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || m.unknown_contact();
 
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
 			return name + ' (Tu)';
@@ -235,7 +237,7 @@
 
 	async function settleDebt(from: string, to: string, settleAmt: number) {
 		if (settleAmt <= 0) {
-			toast.error("L'importo deve essere maggiore di zero");
+			toast.error(m.amount_gt_zero());
 			return;
 		}
 		try {
@@ -248,46 +250,46 @@
 				groupId: groupId ? groupId : undefined,
 				createdAt: new Date()
 			});
-			toast.success('Debito saldato con successo');
+			toast.success(m.debt_settled());
 		} catch (error) {
-			toast.error('Errore durante il saldo');
+			toast.error(m.settle_error());
 		}
 	}
 </script>
 
 <div class="mb-6 flex items-center justify-between">
 	<Button variant="ghost" href="/expenses">
-		<ArrowLeft class="mr-2 h-4 w-4" /> Torna alle spese
-	</Button>
+		<ArrowLeft class="mr-2 h-4 w-4" />{m.back_to_expenses_btn()}</Button
+	>
 	<Button variant="destructive" size="icon" onclick={deleteExpense}>
 		<Trash2 class="h-4 w-4" />
 	</Button>
 </div>
 
 {#if fetching}
-	<p class="p-8 text-center">Caricamento...</p>
+	<p class="p-8 text-center">{m.loading()}</p>
 {:else}
 	<div class="mx-auto max-w-2xl">
 		<Tabs.Root value="modifica" class="space-y-6">
 			<Tabs.List class="grid w-full grid-cols-2">
-				<Tabs.Trigger value="modifica">Modifica</Tabs.Trigger>
-				<Tabs.Trigger value="saldi">Dettagli & Ripartizioni</Tabs.Trigger>
+				<Tabs.Trigger value="modifica">{m.edit()}</Tabs.Trigger>
+				<Tabs.Trigger value="saldi">{m.details()} & Ripartizioni</Tabs.Trigger>
 			</Tabs.List>
 
 			<Tabs.Content value="modifica">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Modifica Spesa</Card.Title>
+						<Card.Title>{m.edit()} {m.expense()}</Card.Title>
 					</Card.Header>
 					<Card.Content>
 						<form onsubmit={handleSubmit} class="space-y-6">
 							<div class="grid gap-4 sm:grid-cols-2">
 								<div class="space-y-2">
-									<Label for="title">Titolo *</Label>
+									<Label for="title">{m.title()} *</Label>
 									<Input id="title" bind:value={title} required />
 								</div>
 								<div class="space-y-2">
-									<Label for="amount">Importo (€) *</Label>
+									<Label for="amount">{m.amount()} (€) *</Label>
 									<div class="relative">
 										<Input id="amount" type="number" step="0.01" bind:value={amount} required />
 										<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -315,11 +317,11 @@
 
 							<div class="grid gap-4 sm:grid-cols-2">
 								<div class="space-y-2">
-									<Label for="date">Data</Label>
+									<Label for="date">{m.date()}</Label>
 									<Input id="date" type="date" bind:value={date} />
 								</div>
 								<div class="space-y-2">
-									<Label for="category">Categoria</Label>
+									<Label for="category">{m.category()}</Label>
 									<div class="flex gap-2">
 										<select
 											id="category"
@@ -331,7 +333,7 @@
 												<option value={cat.id!.toString()}>{cat.name}</option>
 											{/each}
 										</select>
-										<Button variant="outline" href="/categories" title="Gestisci Categorie"
+										<Button variant="outline" href="/categories" title={m.manage_categories()}
 											>+</Button
 										>
 									</div>
@@ -343,21 +345,21 @@
 
 							<div class="grid gap-4 sm:grid-cols-2">
 								<div class="space-y-2">
-									<Label for="group">Gruppo</Label>
+									<Label for="group">{m.group()}</Label>
 									<select
 										id="group"
 										bind:value={groupId}
 										onchange={handleGroupChange}
 										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 									>
-										<option value="">Nessuno (1-1)</option>
+										<option value="">{m.none_1_1()}</option>
 										{#each groupsQuery.value || [] as group (group.id)}
 											<option value={group.id!.toString()}>{group.name}</option>
 										{/each}
 									</select>
 								</div>
 								<div class="space-y-2">
-									<Label for="payer">Chi ha pagato?</Label>
+									<Label for="payer">{m.who_paid()}</Label>
 									<select
 										id="payer"
 										bind:value={paidById}
@@ -380,7 +382,7 @@
 							/>
 
 							<Button type="submit" class="w-full" disabled={loading}>
-								{loading ? 'Salvataggio...' : 'Aggiorna Spesa'}
+								{loading ? m.saving() : m.update_expense()}
 							</Button>
 						</form>
 					</Card.Content>
@@ -390,7 +392,7 @@
 			<Tabs.Content value="saldi">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Chi deve pagare chi per questa spesa</Card.Title>
+						<Card.Title>{m.who_owes_who()}</Card.Title>
 						<Card.Description
 							>Visualizza le ripartizioni del costo e segna un pagamento veloce per chiudere il
 							debito di questo scontrino. I pagamenti sono generali.</Card.Description
@@ -403,8 +405,7 @@
 							>
 								<Wallet class="mb-4 h-8 w-8 opacity-50" />
 								<p>
-									Tutti coloro che hanno partecipato alla spesa hanno già pagato la loro quota
-									direttamente o non ci sono debiti sospesi rilevati nella spesa.
+									{m.all_paid_or_no_debts()}
 								</p>
 							</div>
 						{:else}
@@ -417,7 +418,8 @@
 									>
 										{#snippet descriptionSnippet()}
 											<p>
-												<span class="font-bold">{getContactName(debt.from)}</span> deve a
+												<span class="font-bold">{getContactName(debt.from)}</span>
+												{m.owes_to()}
 												<span class="font-bold">{getContactName(debt.to)}</span>
 											</p>
 											<p class="font-bold text-emerald-500">{debt.amount.toFixed(2)}€</p>

@@ -49,20 +49,25 @@ export class DebtManagerDB extends Dexie {
 			});
 
 		// Version 4: Add settings table
-		this.version(4).stores({
-			settings: 'key'
-		}).upgrade(async (tx) => {
-			// Migrate existing settings from localStorage if we are in a browser environment
-			if (typeof window !== 'undefined' && window.localStorage) {
-				const myContactId = localStorage.getItem('myContactId');
-				const geminiApiKey = localStorage.getItem('geminiApiKey');
-				const geminiModel = localStorage.getItem('geminiModel');
+		this.version(4)
+			.stores({
+				settings: 'key'
+			})
+			.upgrade(async (tx) => {
+				// Migrate existing settings from localStorage if we are in a browser environment
+				if (typeof window !== 'undefined' && window.localStorage) {
+					const myContactId = localStorage.getItem('myContactId');
+					const geminiApiKey = localStorage.getItem('geminiApiKey');
+					const geminiModel = localStorage.getItem('geminiModel');
 
-				if (myContactId) await tx.table('settings').put({ key: 'myContactId', value: myContactId });
-				if (geminiApiKey) await tx.table('settings').put({ key: 'geminiApiKey', value: geminiApiKey });
-				if (geminiModel) await tx.table('settings').put({ key: 'geminiModel', value: geminiModel });
-			}
-		});
+					if (myContactId)
+						await tx.table('settings').put({ key: 'myContactId', value: myContactId });
+					if (geminiApiKey)
+						await tx.table('settings').put({ key: 'geminiApiKey', value: geminiApiKey });
+					if (geminiModel)
+						await tx.table('settings').put({ key: 'geminiModel', value: geminiModel });
+				}
+			});
 
 		// Populate for NEW databases
 		this.on('populate', (tx) => {

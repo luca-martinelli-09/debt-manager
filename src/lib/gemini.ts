@@ -1,10 +1,11 @@
+import * as m from '$lib/paraglide/messages.js';
 import { GoogleGenAI, Type, type Tool } from '@google/genai';
 import { db } from './db';
 import { userSettings } from './settings.svelte';
 
 export function getGenAIClient() {
 	if (!userSettings.geminiApiKey) {
-		throw new Error('Chiave API Gemini non impostata. Vai nelle Impostazioni per configurarla.');
+		throw new Error(m.api_key_missing());
 	}
 	// Usiamo il nuovo SDK standard
 	return new GoogleGenAI({ apiKey: userSettings.geminiApiKey });
@@ -15,60 +16,52 @@ export const debtManagerTools: Tool[] = [
 		functionDeclarations: [
 			{
 				name: 'get_dashboard_summary',
-				description:
-					'Recupera il bilancio totale, le spese totali da dare e quelle da ricevere. Chiamalo quando ti viene chiesta una panoramica globale o lo stato dei bilanci generali.'
+				description: m.desc_get_dashboard()
 			},
 			{
 				name: 'get_all_contacts',
-				description:
-					"Recupera l'elenco completo di tutti i contatti, inclusi i loro nomi e il loro ID interno del database. Essenziale se devi creare una spesa per conto di qualcuno."
+				description: m.desc_get_contacts()
 			},
 			{
 				name: 'get_all_categories',
-				description:
-					"Recupera l'elenco di tutte le categorie presenti nel database per poterle associare a una spesa."
+				description: m.desc_get_categories()
 			},
 			{
 				name: 'get_all_groups',
-				description:
-					"Restituisce i gruppi salvati. Utile se l'utente vuole informazioni su un viaggio specifico o associare una spesa a un contesto."
+				description: m.desc_get_groups()
 			},
 			{
 				name: 'get_recent_expenses',
-				description:
-					'Restituisce le ultime 20 spese registrate nel sistema, con titolo, importo, data, pagatore e chi ha partecipato.'
+				description: m.desc_get_recent()
 			},
 			{
 				name: 'add_expense',
-				description:
-					"Aggiunge e registra materialmente una nuova spesa nel database. Da utilizzare quando l'utente ti chiede di segnare/aggiungere una spesa.",
+				description: m.desc_add_expense(),
 				parameters: {
 					type: Type.OBJECT,
 					properties: {
 						title: {
 							type: Type.STRING,
-							description: 'Titolo breve e riassuntivo della spesa (es. "Cena in Pizzeria").'
+							description: m.param_title()
 						},
-						amount: { type: Type.NUMBER, description: 'Importo totale speso, espresso in euro.' },
+						amount: { type: Type.NUMBER, description: m.param_amount() },
 						categoryId: {
 							type: Type.STRING,
-							description:
-								'ID della categoria. Prima di invocarmi dovresti aver cercato la lista con get_all_categories. Se non sai quale scegliere omatte, usa quella che sembra più adatta o lascia vuoto.'
+							description: m.param_category()
 						},
 						paidById: {
 							type: Type.STRING,
 							description:
-								"ID del contatto che ha fisicamente pagato. Se non specificato diversamente o se non lo sai, usa il \"myContactId\" (ovvero l'utente che sta parlando) se c'è."
+								'ID del contatto che ha fisicamente pagato. Se non specificato diversamente o se non lo sai, usa il "myContactId" (ovvero l\'utente che sta parlando) se c\'è.'
 						},
 						groupId: {
 							type: Type.STRING,
-							description: 'ID del gruppo, opzionale, se la spesa fa parte di un gruppo.'
+							description: m.param_group()
 						},
 						splitParticipantIds: {
 							type: Type.ARRAY,
 							items: { type: Type.STRING },
-							description:
-								'Array degli ID (stringhe UUID) dei contatti tra cui dividere in modo equo la spesa. Attenzione: se Mario paga la pizza e divide con Anna, qua devi inserire ENTRAMBI i loro ID altrimenti il saldo andrà in negativo solo al poveretto che ha pagato.'
+							description: m.param_split()
 						}
 					},
 					required: ['title', 'amount', 'paidById', 'splitParticipantIds']
@@ -78,15 +71,7 @@ export const debtManagerTools: Tool[] = [
 	}
 ];
 
-export const systemInstruction = `Sei l'Assistente AI di Debt Manager, un'app PWA open-source per il tracciamento delle spese e la gestione dei debiti tra amici, coinquilini e viaggi (simile a Splitwise). 
-Il tuo compito è aiutare l'utente a recuperare informazioni sulle sue spese o inserire nuove transazioni (es. estraendo i dati da uno scontrino caricato).
-
-REGOLE TASSATIVE:
-1. Sii sempre conciso, formattando le risposte con elenchi puntati o grassetti se ci sono importi.
-2. Hai a disposizione vari Tools per interagire con il database IndexedDB locale dell'utente. Usali in sequenza.
-3. Se l'utente ti chiede di creare una spesa ("ho mangiato una pizza con mario per 20 euro"), prima devi usare 'get_all_contacts' per cercare l'ID di Mario e l'ID dell'utente che ti parla, e POI usare 'add_expense'.
-4. Nelle divisioni: se non diversamente specificato, dividi SEMPRE in parti uguali tra i presenti della frase incluso chi ha pagato. Passa tutti gli ID nella proprietà 'splitParticipantIds' del tool.
-5. Se l'utente carica uno scontrino senza dire nulla, devi capire da solo il totale, inventare un titolo e creare la spesa ripartendola col pagatore predefinito.`;
+export const systemInstruction = m.system_instruction();
 
 // Le funzioni reali che verranno mappate al tool call
 export const toolHandlers: Record<string, Function> = {
@@ -108,14 +93,14 @@ export const toolHandlers: Record<string, Function> = {
 			const iOwe = debts.filter((d) => d.from === myId).reduce((sum, d) => sum + d.amount, 0);
 			const owedToMe = debts.filter((d) => d.to === myId).reduce((sum, d) => sum + d.amount, 0);
 			return JSON.stringify({
-				note: "Dati personali dell'utente loggato",
+				note: m.note_personal(),
 				balance: myBalance,
 				debt_passivo: iOwe,
 				credit_attivo: owedToMe
 			});
 		} else {
 			const globalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
-			return JSON.stringify({ note: 'Dati globali', global_total_balance_volume: globalDebt });
+			return JSON.stringify({ note: m.note_global(), global_total_balance_volume: globalDebt });
 		}
 	},
 	get_all_contacts: async () => {
@@ -140,7 +125,7 @@ export const toolHandlers: Record<string, Function> = {
 				title: e.title,
 				amount: e.amount,
 				date: e.date,
-				paid_by_name: contacts.find((c) => c.id === e.paidById)?.name || 'Sconosciuto',
+				paid_by_name: contacts.find((c) => c.id === e.paidById)?.name || m.unknown_contact(),
 				category: e.category,
 				type: e.splitType
 			}))
@@ -158,8 +143,7 @@ export const toolHandlers: Record<string, Function> = {
 				splitParticipantIds.length === 0
 			) {
 				return JSON.stringify({
-					error:
-						'Campi obbligatori mancanti: assicurati di passare title, amount, paidById e array splitParticipantIds'
+					error: m.error_missing_fields()
 				});
 			}
 
@@ -170,7 +154,7 @@ export const toolHandlers: Record<string, Function> = {
 				value: splitValue
 			}));
 
-			let catName = 'Generale';
+			let catName: string = m.general_category();
 			const realCatId = categoryId;
 			if (realCatId) {
 				const cat = await db.categories.get(realCatId);
@@ -178,7 +162,7 @@ export const toolHandlers: Record<string, Function> = {
 			} else {
 				// Cerca la categoria Generale se non specificata
 				const allCats = await db.categories.toArray();
-				const genCat = allCats.find((c) => c.name === 'Generale');
+				const genCat = allCats.find((c) => c.name === m.general_category());
 				if (genCat) catName = genCat.name;
 			}
 
@@ -196,10 +180,10 @@ export const toolHandlers: Record<string, Function> = {
 				createdAt: new Date()
 			});
 
-			return JSON.stringify({ success: true, message: 'Spesa aggiunta!', expense_id: newExpId });
+			return JSON.stringify({ success: true, message: m.expense_added(), expense_id: newExpId });
 		} catch (e: any) {
 			console.error(e);
-			return JSON.stringify({ error: 'Errore inserimento DB: ' + e.message });
+			return JSON.stringify({ error: m.db_insert_error() + e.message });
 		}
 	}
 };

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import { userSettings } from '$lib/settings.svelte';
@@ -72,7 +73,8 @@
 		const settlements = settlementsQuery.value || [];
 		const contacts = contactsQuery.value || [];
 
-		const getContactName = (id: string) => contacts.find((c) => c.id === id)?.name || 'Sconosciuto';
+		const getContactName = (id: string) =>
+			contacts.find((c) => c.id === id)?.name || m.unknown_contact();
 
 		const activity = [
 			...expenses.map((e) => ({
@@ -81,15 +83,15 @@
 				title: e.title,
 				category: e.category,
 				amount: e.amount,
-				description: `Pagato da ${getContactName(e.paidById)}`
+				description: `${m.paid_by()} ${getContactName(e.paidById)}`
 			})),
 			...settlements.map((s) => ({
 				type: 'settlement',
 				date: new Date(s.createdAt),
-				title: 'Pagamento saldato',
+				title: m.settlement_paid(),
 				category: undefined,
 				amount: s.amount,
-				description: `Da ${getContactName(s.fromContactId)} a ${getContactName(s.toContactId)}`
+				description: `${m.from_to()} ${getContactName(s.fromContactId)} ${m.to()} ${getContactName(s.toContactId)}`
 			}))
 		];
 
@@ -100,16 +102,16 @@
 <div class="grid gap-4 md:grid-cols-3">
 	<Card.Root>
 		<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-			<Card.Title class="text-sm font-medium">Bilancio Totale</Card.Title>
+			<Card.Title class="text-sm font-medium">{m.total_balance()}</Card.Title>
 			<Wallet class="h-4 w-4 text-muted-foreground" />
 		</Card.Header>
 		<Card.Content>
 			<div class="text-2xl font-bold">{totalBalance.toFixed(2)}€</div>
 			<p class="text-xs text-muted-foreground">
 				{#if myId}
-					Il tuo saldo netto
+					{m.your_net_balance()}
 				{:else}
-					Somma di tutti i debiti e crediti
+					{m.sum_of_debts()}
 				{/if}
 			</p>
 		</Card.Content>
@@ -117,32 +119,32 @@
 
 	<Card.Root>
 		<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-			<Card.Title class="text-sm font-medium">Devi Dare</Card.Title>
+			<Card.Title class="text-sm font-medium">{m.you_owe()}</Card.Title>
 			<ArrowUpRight class="h-4 w-4 text-destructive" />
 		</Card.Header>
 		<Card.Content>
 			<div class="text-2xl font-bold text-destructive">{debtTotal.toFixed(2)}€</div>
-			<p class="text-xs text-muted-foreground">Totale debiti passivi</p>
+			<p class="text-xs text-muted-foreground">{m.total_passive()}</p>
 		</Card.Content>
 	</Card.Root>
 
 	<Card.Root>
 		<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-			<Card.Title class="text-sm font-medium">Devi Ricevere</Card.Title>
+			<Card.Title class="text-sm font-medium">{m.you_are_owed()}</Card.Title>
 			<ArrowDownLeft class="h-4 w-4 text-primary" />
 		</Card.Header>
 		<Card.Content>
 			<div class="text-2xl font-bold text-primary">{creditTotal.toFixed(2)}€</div>
-			<p class="text-xs text-muted-foreground">Totale crediti attivi</p>
+			<p class="text-xs text-muted-foreground">{m.total_active()}</p>
 		</Card.Content>
 	</Card.Root>
 </div>
 
 <div class="mt-8">
-	<h2 class="mb-4 text-xl font-bold">Attività Recente</h2>
+	<h2 class="mb-4 text-xl font-bold">{m.recent_activity()}</h2>
 	{#if recentActivity.length === 0}
 		<div class="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-			Non ci sono ancora attività. Inizia aggiungendo un contatto o una spesa!
+			{m.no_activity()}
 		</div>
 	{:else}
 		<div class="overflow-hidden rounded-lg border bg-card">
@@ -171,7 +173,9 @@
 						<div class="shrink-0 text-right">
 							{#if activity.type === 'expense'}
 								<p class="text-sm font-bold">{activity.amount.toFixed(2)}€</p>
-								<p class="text-xs text-muted-foreground">{activity.category || 'Generale'}</p>
+								<p class="text-xs text-muted-foreground">
+									{activity.category || m.general_category()}
+								</p>
 							{:else}
 								<p class="text-sm font-bold text-emerald-500">+{activity.amount.toFixed(2)}€</p>
 							{/if}

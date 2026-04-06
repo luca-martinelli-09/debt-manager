@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { debtManagerTools, getGenAIClient, systemInstruction, toolHandlers } from '$lib/gemini';
+	import * as m from '$lib/paraglide/messages.js';
 	import { userSettings } from '$lib/settings.svelte';
 	import {
 		AlertTriangle,
@@ -27,7 +28,7 @@
 	let messages = $state<Message[]>([
 		{
 			role: 'system',
-			text: "Ciao! Sono l'assistente AI di Debt Manager.\n\nPuoi chiedermi un resoconto delle tue spese, di chi ti deve dei soldi, oppure caricarmi uno scontrino per farmi aggiungere la spesa in automatico."
+			text: m.ai_welcome()
 		}
 	]);
 
@@ -100,7 +101,7 @@
 					...messages,
 					{
 						role: 'model',
-						text: `Consultazione database in corso... (*${call.name}*)`,
+						text: `\${m.ai_querying_db()} (*\${call.name}*)`,
 						isToolCall: true
 					}
 				];
@@ -136,7 +137,7 @@
 							{
 								functionResponse: {
 									name: call.name,
-									response: { error: 'Funzione non trovata nel sistema' }
+									response: { error: m.function_not_found() }
 								}
 							}
 						]
@@ -150,7 +151,7 @@
 			}
 		} catch (err: any) {
 			console.error(err);
-			toast.error("Errore di comunicazione con l'IA: " + err.message);
+			toast.error(m.ai_error() + err.message);
 		} finally {
 			loading = false;
 			setTimeout(() => {
@@ -167,7 +168,7 @@
 			<h1 class="flex items-center gap-2 text-2xl font-bold">
 				<Sparkles class="text-primary" /> Assistente AI
 			</h1>
-			<p class="text-sm text-muted-foreground">Potenziato da Gemini {userSettings.geminiModel}</p>
+			<p class="text-sm text-muted-foreground">{m.powered_by()} {userSettings.geminiModel}</p>
 		</div>
 		<Button variant="outline" size="sm" href="/settings">
 			<Settings class="mr-2 h-4 w-4" /> API Key
@@ -179,13 +180,13 @@
 			class="mx-auto mt-8 max-w-2xl rounded-md border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive"
 		>
 			<AlertTriangle class="mx-auto mb-2 h-8 w-8 opacity-80" />
-			<p class="mb-2 font-medium">L'Assistente AI non è ancora configurato.</p>
+			<p class="mb-2 font-medium">{m.ai_not_configured()}</p>
 			<p class="mb-4 text-sm opacity-90">
 				È necessaria una chiave API gratuita di Google Gemini per utilizzare la chat e l'analisi
 				scontrini.
 			</p>
 			<Button variant="outline" href="/settings" class="bg-background text-foreground">
-				Configura adesso
+				{m.configure_now()}
 			</Button>
 		</div>
 	{:else}
@@ -218,7 +219,7 @@
 							<!-- Bolla Messaggio -->
 							<div class="flex flex-col gap-1 {msg.role === 'user' ? 'items-end' : 'items-start'}">
 								<span class="px-1 text-xs font-medium text-muted-foreground">
-									{msg.role === 'user' ? 'Tu' : 'Debt Manager AI'}
+									{msg.role === 'user' ? m.you() : 'Debt Manager AI'}
 								</span>
 
 								<div
@@ -247,7 +248,7 @@
 											{/if}
 											<div class="flex flex-col overflow-hidden">
 												<span class="truncate text-sm font-bold">{msg.fileName}</span>
-												<span class="text-[10px] opacity-70">Allegato inviato</span>
+												<span class="text-[10px] opacity-70">{m.attachment_sent()}</span>
 											</div>
 										</div>
 									{/if}
@@ -279,7 +280,9 @@
 								<Sparkles class="h-4 w-4" />
 							</div>
 							<div class="flex flex-col items-start gap-1">
-								<span class="px-1 text-xs font-medium text-muted-foreground">Debt Manager AI</span>
+								<span class="px-1 text-xs font-medium text-muted-foreground"
+									>{m.app_title()} AI</span
+								>
 								<div
 									class="flex items-center gap-3 rounded-2xl rounded-bl-sm border bg-card px-5 py-3 text-sm text-muted-foreground shadow-sm"
 								>
@@ -354,7 +357,7 @@
 
 				<textarea
 					bind:value={inputPrompt}
-					placeholder="Descrivi una nuova spesa o chiedi chi è in debito con te..."
+					placeholder={m.chat_placeholder()}
 					class="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={loading}
 					rows="1"
@@ -375,10 +378,7 @@
 					<Send class="h-4 w-4" />
 				</Button>
 			</form>
-			<p class="mt-2 text-center text-[10px] text-muted-foreground">
-				Le informazioni di bilancio e le spese fornite o generate dall'IA vengono scritte
-				esclusivamente sul tuo database locale.
-			</p>
+			<p class="mt-2 text-center text-[10px] text-muted-foreground">{m.chat_disclaimer()}</p>
 		</div>
 	{/if}
 </div>

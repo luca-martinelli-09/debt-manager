@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { db } from '$lib/db';
@@ -21,19 +22,19 @@
 	});
 
 	async function deleteExpense(id: string) {
-		if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
+		if (confirm(m.delete_expense_confirm())) {
 			try {
 				await db.expenses.delete(id);
-				toast.success('Spesa eliminata');
+				toast.success(m.expense_deleted());
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
 
 	function getPayerName(id: string) {
-		if (myId && id === myId) return 'Tu';
-		return contactsQuery.value?.find((c) => c.id === id)?.name || 'Sconosciuto';
+		if (myId && id === myId) return m.you();
+		return contactsQuery.value?.find((c) => c.id === id)?.name || m.unknown_contact();
 	}
 
 	function getExpenseBalance(expense: any) {
@@ -61,16 +62,16 @@
 </script>
 
 <div class="mb-6 flex items-center justify-between">
-	<h1 class="text-2xl font-bold">Spese</h1>
+	<h1 class="text-2xl font-bold">{m.nav_expenses()}</h1>
 	<Button href="/expenses/new">
-		<Plus class="mr-2 h-4 w-4" /> Nuova Spesa
-	</Button>
+		<Plus class="mr-2 h-4 w-4" />{m.new_expense()}</Button
+	>
 </div>
 
 <div class="mb-6">
 	<input
 		type="text"
-		placeholder="Cerca spese..."
+		placeholder={m.search_expenses()}
 		bind:value={searchQuery}
 		class="w-full max-w-sm rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 	/>
@@ -80,20 +81,20 @@
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Data</Table.Head>
-				<Table.Head>Titolo</Table.Head>
-				<Table.Head>Pagato da</Table.Head>
-				<Table.Head>Importo</Table.Head>
-				<Table.Head>Categoria</Table.Head>
-				<Table.Head>Il tuo Bilancio</Table.Head>
-				<Table.Head>All.</Table.Head>
-				<Table.Head class="text-right">Azioni</Table.Head>
+				<Table.Head>{m.date()}</Table.Head>
+				<Table.Head>{m.title()}</Table.Head>
+				<Table.Head>{m.paid_by()}</Table.Head>
+				<Table.Head>{m.amount()}</Table.Head>
+				<Table.Head>{m.category()}</Table.Head>
+				<Table.Head>{m.your_balance()}</Table.Head>
+				<Table.Head>{m.attachments_short()}</Table.Head>
+				<Table.Head class="text-right">{m.actions()}</Table.Head>
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
 			{#if filteredExpenses.length === 0}
 				<Table.Row>
-					<Table.Cell colspan={8} class="h-24 text-center">Nessuna spesa trovata.</Table.Cell>
+					<Table.Cell colspan={8} class="h-24 text-center">{m.no_expenses()}</Table.Cell>
 				</Table.Row>
 			{:else}
 				{#each filteredExpenses as expense (expense.id)}
@@ -128,16 +129,16 @@
 							{#if bal === null}
 								<span class="text-muted-foreground">-</span>
 							{:else if Math.abs(bal) < 0.01}
-								<span class="text-muted-foreground">Pari</span>
+								<span class="text-muted-foreground">{m.even()}</span>
 							{:else if bal > 0}
 								<div class="flex flex-col">
 									<span class="font-bold text-emerald-500">+{bal.toFixed(2)}€</span>
-									<span class="text-[10px] text-emerald-500">Hai prestato</span>
+									<span class="text-[10px] text-emerald-500">{m.you_lent()}</span>
 								</div>
 							{:else}
 								<div class="flex flex-col">
 									<span class="font-bold text-destructive">{bal.toFixed(2)}€</span>
-									<span class="text-[10px] text-destructive">Hai in prestito</span>
+									<span class="text-[10px] text-destructive">{m.you_borrowed()}</span>
 								</div>
 							{/if}
 						</Table.Cell>

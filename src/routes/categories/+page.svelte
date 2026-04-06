@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { db } from '$lib/db';
@@ -7,38 +8,38 @@
 	import { toast } from 'svelte-sonner';
 
 	async function deleteCategory(id: string) {
-		if (confirm('Sei sicuro di voler eliminare questa categoria?')) {
+		if (confirm(m.delete_category_confirm())) {
 			try {
 				await db.categories.delete(id);
-				toast.success('Categoria eliminata');
+				toast.success(m.category_deleted());
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
 </script>
 
 <div class="mb-6 flex items-center justify-between">
-	<h1 class="text-2xl font-bold">Categorie</h1>
+	<h1 class="text-2xl font-bold">{m.nav_categories()}</h1>
 	<Button href="/categories/new">
-		<Plus class="mr-2 h-4 w-4" /> Nuova Categoria
-	</Button>
+		<Plus class="mr-2 h-4 w-4" />{m.new_category()}</Button
+	>
 </div>
 
 <div class="rounded-md border">
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Colore</Table.Head>
-				<Table.Head>Nome</Table.Head>
-				<Table.Head>Data Creazione</Table.Head>
-				<Table.Head class="text-right">Azioni</Table.Head>
+				<Table.Head>{m.color()}</Table.Head>
+				<Table.Head>{m.name()}</Table.Head>
+				<Table.Head>{m.creation_date()}</Table.Head>
+				<Table.Head class="text-right">{m.actions()}</Table.Head>
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
 			{#if !categoriesQuery.value || categoriesQuery.value.length === 0}
 				<Table.Row>
-					<Table.Cell colspan={4} class="h-24 text-center">Nessuna categoria trovata.</Table.Cell>
+					<Table.Cell colspan={4} class="h-24 text-center">{m.no_categories()}</Table.Cell>
 				</Table.Row>
 			{:else}
 				{#each categoriesQuery.value as cat (cat.id)}

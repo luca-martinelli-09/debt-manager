@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -41,7 +42,8 @@
 
 		{#if !settling}
 			<Button variant="outline" size="sm" onclick={startSettle}>
-				<Wallet class="mr-2 h-4 w-4" /> Salda
+				<Wallet class="mr-2 h-4 w-4" />
+				{m.settle()}
 			</Button>
 		{/if}
 	</div>
@@ -51,16 +53,16 @@
 			class="mt-4 flex flex-col gap-3 rounded-md border bg-muted/50 p-4 sm:flex-row sm:items-end"
 		>
 			<div class="flex-1 space-y-1">
-				<Label class="text-xs">Importo da saldare (€)</Label>
+				<Label class="text-xs">{m.amount_to_settle()}</Label>
 				<Input type="number" step="0.01" max={amount} min="0.01" bind:value={settleAmount} />
 			</div>
 			<div class="flex gap-2">
-				<Button variant="ghost" onclick={() => (settling = false)}>Annulla</Button>
+				<Button variant="ghost" onclick={() => (settling = false)}>{m.cancel()}</Button>
 				<Button
 					onclick={() => {
 						onSettle(settleAmount);
 						settling = false;
-					}}>Conferma</Button
+					}}>{m.confirm()}</Button
 				>
 			</div>
 		</div>

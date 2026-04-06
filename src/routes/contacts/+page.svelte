@@ -3,6 +3,7 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { db } from '$lib/db';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { userSettings } from '$lib/settings.svelte';
 	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
 	import { Edit, Plus, Trash2, User } from '@lucide/svelte';
@@ -42,28 +43,28 @@
 	});
 
 	async function deleteContact(id: string) {
-		if (confirm('Sei sicuro di voler eliminare questo contatto?')) {
+		if (confirm(m.delete_contact_confirm())) {
 			try {
 				await db.contacts.delete(id);
-				toast.success('Contatto eliminato');
+				toast.success(m.contact_deleted());
 			} catch (e) {
-				toast.error("Errore durante l'eliminazione");
+				toast.error(m.delete_error());
 			}
 		}
 	}
 </script>
 
 <div class="mb-6 flex items-center justify-between">
-	<h1 class="text-2xl font-bold">Contatti</h1>
+	<h1 class="text-2xl font-bold">{m.nav_contacts()}</h1>
 	<Button href="/contacts/new">
-		<Plus class="mr-2 h-4 w-4" /> Nuovo Contatto
-	</Button>
+		<Plus class="mr-2 h-4 w-4" />{m.new_contact()}</Button
+	>
 </div>
 
 <div class="mb-6">
 	<input
 		type="text"
-		placeholder="Cerca contatti..."
+		placeholder={m.search_contacts()}
 		bind:value={searchQuery}
 		class="w-full max-w-sm rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 	/>
@@ -73,17 +74,17 @@
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Nome</Table.Head>
-				<Table.Head>Email</Table.Head>
-				<Table.Head>Telefono</Table.Head>
-				<Table.Head>Bilancio</Table.Head>
-				<Table.Head class="text-right">Azioni</Table.Head>
+				<Table.Head>{m.name()}</Table.Head>
+				<Table.Head>{m.email()}</Table.Head>
+				<Table.Head>{m.phone()}</Table.Head>
+				<Table.Head>{m.balance()}</Table.Head>
+				<Table.Head class="text-right">{m.actions()}</Table.Head>
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
 			{#if filteredContacts.length === 0}
 				<Table.Row>
-					<Table.Cell colspan={5} class="h-24 text-center">Nessun contatto trovato.</Table.Cell>
+					<Table.Cell colspan={5} class="h-24 text-center">{m.no_contacts()}</Table.Cell>
 				</Table.Row>
 			{:else}
 				{#each filteredContacts as contact (contact.id)}
@@ -97,7 +98,7 @@
 								</div>
 								{contact.name}
 								{#if myId === contact.id}
-									<span class="ml-2 text-xs text-muted-foreground">(Tu)</span>
+									<span class="ml-2 text-xs text-muted-foreground">{m.you_paren()}</span>
 								{/if}
 							</div>
 						</Table.Cell>
