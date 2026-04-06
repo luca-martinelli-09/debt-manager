@@ -1,37 +1,53 @@
 import { browser } from '$app/environment';
+import { db } from '$lib/db';
 
 export const userSettings = $state({
-	myContactId: browser ? localStorage.getItem('myContactId') || '' : '',
-	geminiApiKey: browser ? localStorage.getItem('geminiApiKey') || '' : '',
-	geminiModel: browser
-		? localStorage.getItem('geminiModel') || 'gemini-2.5-flash'
-		: 'gemini-2.5-flash'
+	myContactId: '',
+	geminiApiKey: '',
+	geminiModel: 'gemini-2.5-flash',
+	isLoaded: false
 });
 
-export function setMyContactId(id: string) {
+// Inizializza le impostazioni all'avvio dell'app dal DB
+if (browser) {
+	db.settings.toArray().then((settingsArray) => {
+		const settingsMap = new Map(settingsArray.map((s) => [s.key, s.value]));
+		
+		userSettings.myContactId = settingsMap.get('myContactId') || '';
+		userSettings.geminiApiKey = settingsMap.get('geminiApiKey') || '';
+		userSettings.geminiModel = settingsMap.get('geminiModel') || 'gemini-2.5-flash';
+		userSettings.isLoaded = true;
+	}).catch(err => {
+		console.error("Failed to load settings from DB", err);
+		userSettings.isLoaded = true; // Set to true even on error so UI can render
+	});
+}
+
+export async function setMyContactId(id: string) {
 	userSettings.myContactId = id;
 	if (browser) {
 		if (id) {
-			localStorage.setItem('myContactId', id);
+			await db.settings.put({ key: 'myContactId', value: id });
 		} else {
-			localStorage.removeItem('myContactId');
+			await db.settings.delete('myContactId');
 		}
 	}
 }
 
-export function setGeminiSettings(apiKey: string, model: string) {
+export async function setGeminiSettings(apiKey: string, model: string) {
 	userSettings.geminiApiKey = apiKey;
 	userSettings.geminiModel = model;
 	if (browser) {
 		if (apiKey) {
-			localStorage.setItem('geminiApiKey', apiKey);
+			await db.settings.put({ key: 'geminiApiKey', value: apiKey });
 		} else {
-			localStorage.removeItem('geminiApiKey');
+			await db.settings.delete('geminiApiKey');
 		}
+		
 		if (model) {
-			localStorage.setItem('geminiModel', model);
+			await db.settings.put({ key: 'geminiModel', value: model });
 		} else {
-			localStorage.removeItem('geminiModel');
+			await db.settings.delete('geminiModel');
 		}
 	}
 }

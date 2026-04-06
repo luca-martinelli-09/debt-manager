@@ -51,6 +51,7 @@
 			expenses: await db.expenses.toArray(),
 			settlements: await db.settlements.toArray(),
 			categories: await db.categories.toArray(),
+			settings: await db.settings.toArray(),
 			exportedAt: new Date().toISOString(),
 			version: 2
 		};
@@ -62,21 +63,25 @@
 		}
 		await db.transaction(
 			'rw',
-			[db.contacts, db.groups, db.expenses, db.settlements, db.categories],
+			[db.contacts, db.groups, db.expenses, db.settlements, db.categories, db.settings],
 			async () => {
 				await db.contacts.clear();
 				await db.groups.clear();
 				await db.expenses.clear();
 				await db.settlements.clear();
 				if (data.categories) await db.categories.clear();
+				if (data.settings) await db.settings.clear();
 
 				await db.contacts.bulkAdd(data.contacts);
 				await db.groups.bulkAdd(data.groups);
 				await db.expenses.bulkAdd(data.expenses);
 				await db.settlements.bulkAdd(data.settlements);
 				if (data.categories) await db.categories.bulkAdd(data.categories);
+				if (data.settings) await db.settings.bulkAdd(data.settings);
 			}
 		);
+		// Forza ricaricamento delle settings dal DB appena importato
+		window.location.reload();
 	}
 
 	async function importData(e: Event) {
@@ -109,16 +114,18 @@
 			try {
 				await db.transaction(
 					'rw',
-					[db.contacts, db.groups, db.expenses, db.settlements, db.categories],
+					[db.contacts, db.groups, db.expenses, db.settlements, db.categories, db.settings],
 					async () => {
 						await db.contacts.clear();
 						await db.groups.clear();
 						await db.expenses.clear();
 						await db.settlements.clear();
 						await db.categories.clear();
+						await db.settings.clear();
 					}
 				);
 				toast.success('Database resettato');
+				window.location.reload();
 			} catch (error) {
 				toast.error('Errore durante il reset');
 			}
@@ -135,22 +142,30 @@
 	let syncStatus = $state<string>('Disconnesso');
 	let PeerJS: any;
 
-	let geminiApiKeyInput = $state(userSettings.geminiApiKey);
-	let geminiModelInput = $state(userSettings.geminiModel);
+	let geminiApiKeyInput = $state('');
+	let geminiModelInput = $state('gemini-2.5-flash');
 	let showApiKey = $state(false);
 
 	let availableModels = $state<{ name: string; description: string }[]>([]);
 	let loadingModels = $state(false);
 
+	let initializedSettings = $state(false);
+
+	$effect(() => {
+		if (userSettings.isLoaded && !initializedSettings) {
+			initializedSettings = true;
+			geminiApiKeyInput = userSettings.geminiApiKey;
+			geminiModelInput = userSettings.geminiModel;
+			if (userSettings.geminiApiKey) {
+				fetchModels(userSettings.geminiApiKey);
+			}
+		}
+	});
+
 	onMount(async () => {
 		// Import dynamically to avoid SSR issues
 		const module = await import('peerjs');
 		PeerJS = module.default;
-
-		// If API key exists, try to fetch models
-		if (userSettings.geminiApiKey) {
-			await fetchModels(userSettings.geminiApiKey);
-		}
 	});
 
 	async function fetchModels(apiKey: string) {

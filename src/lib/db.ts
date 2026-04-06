@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { uuidv7 } from 'uuidv7';
-import type { Category, Contact, Expense, Group, Settlement } from './types';
+import type { Category, Contact, Expense, Group, Setting, Settlement } from './types';
 
 export class DebtManagerDB extends Dexie {
 	contacts!: EntityTable<Contact, 'id'>;
@@ -8,6 +8,7 @@ export class DebtManagerDB extends Dexie {
 	expenses!: EntityTable<Expense, 'id'>;
 	settlements!: EntityTable<Settlement, 'id'>;
 	categories!: EntityTable<Category, 'id'>;
+	settings!: EntityTable<Setting, 'key'>;
 
 	constructor() {
 		super('DebtManagerDB');
@@ -46,6 +47,22 @@ export class DebtManagerDB extends Dexie {
 					]);
 				}
 			});
+
+		// Version 4: Add settings table
+		this.version(4).stores({
+			settings: 'key'
+		}).upgrade(async (tx) => {
+			// Migrate existing settings from localStorage if we are in a browser environment
+			if (typeof window !== 'undefined' && window.localStorage) {
+				const myContactId = localStorage.getItem('myContactId');
+				const geminiApiKey = localStorage.getItem('geminiApiKey');
+				const geminiModel = localStorage.getItem('geminiModel');
+
+				if (myContactId) await tx.table('settings').put({ key: 'myContactId', value: myContactId });
+				if (geminiApiKey) await tx.table('settings').put({ key: 'geminiApiKey', value: geminiApiKey });
+				if (geminiModel) await tx.table('settings').put({ key: 'geminiModel', value: geminiModel });
+			}
+		});
 
 		// Populate for NEW databases
 		this.on('populate', (tx) => {

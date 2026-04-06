@@ -20,8 +20,8 @@ export function createQuery<T>(query: () => Promise<T> | T) {
 	};
 }
 
-export const contactsQuery = createQuery(() => db.contacts.toArray());
-export const groupsQuery = createQuery(() => db.groups.toArray());
+export const contactsQuery = createQuery(() => db.contacts.orderBy('name').toArray());
+export const groupsQuery = createQuery(() => db.groups.orderBy('name').toArray());
 export const expensesQuery = createQuery(() => db.expenses.toArray());
 export const settlementsQuery = createQuery(() => db.settlements.toArray());
-export const categoriesQuery = createQuery(() => db.categories.toArray());
+export const categoriesQuery = createQuery(() => db.categories.orderBy('name').toArray());

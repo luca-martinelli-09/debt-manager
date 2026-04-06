@@ -59,3 +59,9 @@ export interface Debt {
 	to: string;
 	amount: number;
 }
+
+export interface Setting {
+	key: string;
+	value: string;
+}
+
