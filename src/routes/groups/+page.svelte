@@ -1,12 +1,11 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { groupsQuery, contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
-	import { userSettings } from '$lib/settings.svelte';
-	import { db } from '$lib/db';
-	import { calculateBalances } from '$lib/utils/debt';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import { Plus, Users, Trash2, Edit } from '@lucide/svelte';
+	import { db } from '$lib/db';
+	import { contactsQuery, expensesQuery, groupsQuery, settlementsQuery } from '$lib/db.svelte';
+	import { userSettings } from '$lib/settings.svelte';
+	import { calculateBalances } from '$lib/utils/debt';
+	import { Edit, Plus, Trash2, Users } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	let searchQuery = $state('');

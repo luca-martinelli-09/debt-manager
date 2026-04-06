@@ -1,26 +1,28 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { db } from '$lib/db';
 	import { contactsQuery } from '$lib/db.svelte';
-	import { userSettings, setMyContactId } from '$lib/settings.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import { setGeminiSettings, setMyContactId, userSettings } from '$lib/settings.svelte';
 	import {
-		Download,
-		Upload,
-		Trash2,
 		AlertTriangle,
-		User,
-		Share2,
+		Download,
+		Eye,
+		EyeOff,
+		Loader2,
 		ScanLine,
-		Loader2
+		Share2,
+		Sparkles,
+		Trash2,
+		Upload,
+		User
 	} from '@lucide/svelte';
-	import { toast } from 'svelte-sonner';
-	import { onMount, onDestroy } from 'svelte';
 	import QRCode from 'qrcode';
+	import { onDestroy, onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	// === DATA PORTABILITY LOGIC ===
 	async function exportData() {
@@ -133,11 +135,80 @@
 	let syncStatus = $state<string>('Disconnesso');
 	let PeerJS: any;
 
+	let geminiApiKeyInput = $state(userSettings.geminiApiKey);
+	let geminiModelInput = $state(userSettings.geminiModel);
+	let showApiKey = $state(false);
+
+	let availableModels = $state<{ name: string; description: string }[]>([]);
+	let loadingModels = $state(false);
+
 	onMount(async () => {
 		// Import dynamically to avoid SSR issues
 		const module = await import('peerjs');
 		PeerJS = module.default;
+
+		// If API key exists, try to fetch models
+		if (userSettings.geminiApiKey) {
+			await fetchModels(userSettings.geminiApiKey);
+		}
 	});
+
+	async function fetchModels(apiKey: string) {
+		if (!apiKey) return;
+		loadingModels = true;
+		try {
+			const { GoogleGenAI } = await import('@google/genai');
+			const client = new GoogleGenAI({ apiKey });
+
+			// Get actual list of models
+			const response = await client.models.list();
+			const allModels = [];
+			for await (const m of response) {
+				allModels.push(m);
+			}
+
+			// Filter to show only useful models (Gemini models, avoiding embedding/tuning specific ones)
+			availableModels = allModels
+				.filter(
+					(m) =>
+						m.name &&
+						m.name.includes('gemini') &&
+						!m.name.includes('vision') &&
+						!m.name.includes('embedding') &&
+						!m.name.includes('aqa')
+				)
+				.map((m) => ({
+					name: (m.name || '').replace('models/', ''),
+					description: m.description || m.displayName || m.name || ''
+				}));
+
+			// If current model is not in list (or empty list), default to the first one or flash
+			if (availableModels.length > 0 && !availableModels.find((m) => m.name === geminiModelInput)) {
+				const flashModel = availableModels.find((m) => m.name.includes('flash'));
+				geminiModelInput = flashModel ? flashModel.name : availableModels[0].name;
+			}
+		} catch (error) {
+			console.error('Error fetching models:', error);
+			// Fallback quietly to defaults if API key is invalid or network fails
+			availableModels = [
+				{ name: 'gemini-2.5-flash', description: 'Gemini 2.5 Flash' },
+				{ name: 'gemini-1.5-flash', description: 'Gemini 1.5 Flash' },
+				{ name: 'gemini-1.5-pro', description: 'Gemini 1.5 Pro' }
+			];
+		} finally {
+			loadingModels = false;
+		}
+	}
+
+	async function saveGeminiSettings() {
+		setGeminiSettings(geminiApiKeyInput, geminiModelInput);
+		toast.success('Impostazioni Gemini salvate');
+
+		// Refetch models if API key changed
+		if (geminiApiKeyInput !== userSettings.geminiApiKey) {
+			await fetchModels(geminiApiKeyInput);
+		}
+	}
 
 	onDestroy(() => {
 		if (peer) {
@@ -283,6 +354,93 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title class="flex items-center gap-2">
+				<Sparkles class="h-5 w-5 text-primary" /> Intelligenza Artificiale (Gemini)
+			</Card.Title>
+			<Card.Description
+				>Configura l'assistente basato su Google Gemini per parlare con i tuoi dati o aggiungere
+				spese semplicemente inviando una foto dello scontrino.</Card.Description
+			>
+		</Card.Header>
+		<Card.Content>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					saveGeminiSettings();
+				}}
+				class="max-w-md space-y-4"
+			>
+				<div class="space-y-2">
+					<Label for="apiKey">API Key (Gemini / Google AI Studio)</Label>
+					<InputGroup.Root>
+						<InputGroup.Input
+							id="apiKey"
+							type={showApiKey ? 'text' : 'password'}
+							bind:value={geminiApiKeyInput}
+							placeholder="AIzaSy..."
+						/>
+						<InputGroup.Addon align="inline-end">
+							<InputGroup.Button
+								variant="ghost"
+								size="sm"
+								class="text-muted-foreground hover:bg-transparent"
+								onclick={() => (showApiKey = !showApiKey)}
+							>
+								{#if showApiKey}
+									<EyeOff class="h-4 w-4" />
+								{:else}
+									<Eye class="h-4 w-4" />
+								{/if}
+							</InputGroup.Button>
+						</InputGroup.Addon>
+					</InputGroup.Root>
+					<p class="text-xs text-muted-foreground">
+						La chiave rimane salvata solo sul tuo dispositivo. <a
+							href="https://aistudio.google.com/app/apikey"
+							target="_blank"
+							class="text-primary hover:underline">Ottieni una chiave gratuita</a
+						>
+					</p>
+				</div>
+				<div class="space-y-2">
+					<Label for="model">Modello LLM</Label>
+					<div class="relative">
+						<select
+							id="model"
+							bind:value={geminiModelInput}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:outline-none disabled:opacity-50"
+							disabled={loadingModels || availableModels.length === 0}
+						>
+							{#if loadingModels}
+								<option value={geminiModelInput}>Caricamento modelli...</option>
+							{:else if availableModels.length === 0}
+								<option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+								<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+								<option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+							{:else}
+								{#each availableModels as model}
+									<option value={model.name}>
+										{model.name.replace('models/', '')} - {model.description
+											? model.description.substring(0, 40) + '...'
+											: ''}
+									</option>
+								{/each}
+							{/if}
+						</select>
+						{#if loadingModels}
+							<div class="absolute inset-y-0 right-8 flex items-center">
+								<Loader2 class="h-4 w-4 animate-spin text-muted-foreground" />
+							</div>
+						{/if}
+					</div>
+				</div>
+				<Button type="submit">Salva Impostazioni AI</Button>
+			</form>
+		</Card.Content>
+	</Card.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2">
 				<Share2 class="h-5 w-5" /> Sincronizzazione P2P (WebRTC)
 			</Card.Title>
 			<Card.Description
@@ -342,14 +500,24 @@
 						Inserisci l'ID Sync generato dall'altro dispositivo (oppure premi e usa la fotocamera
 						per scansionare il QR) e ricevi i dati.
 					</p>
-					<div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-						<div class="flex-1 space-y-1">
-							<Label>ID Sync Remoto</Label>
-							<Input type="text" placeholder="Es. abc-123-def" bind:value={connectToId} />
-						</div>
-						<Button onclick={connectAndReceive} disabled={!connectToId || isConnecting}>
-							<ScanLine class="mr-2 h-4 w-4" /> Richiedi e Ricevi
-						</Button>
+					<div class="space-y-1">
+						<Label>ID Sync Remoto</Label>
+						<InputGroup.Root>
+							<InputGroup.Input
+								type="text"
+								placeholder="Es. abc-123-def"
+								bind:value={connectToId}
+							/>
+							<InputGroup.Addon align="inline-end">
+								<InputGroup.Button
+									variant="secondary"
+									onclick={connectAndReceive}
+									disabled={!connectToId || isConnecting}
+								>
+									<ScanLine class="mr-2 h-4 w-4" /> Richiedi e Ricevi
+								</InputGroup.Button>
+							</InputGroup.Addon>
+						</InputGroup.Root>
 					</div>
 					{#if syncStatus !== 'Disconnesso' && !isHost}
 						<p class="mt-2 text-sm font-medium text-primary">{syncStatus}</p>

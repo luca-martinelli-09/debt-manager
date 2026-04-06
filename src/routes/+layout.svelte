@@ -1,11 +1,11 @@
 <script lang="ts">
-	import './layout.css';
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import { Plus } from '@lucide/svelte';
 	import { ModeWatcher } from 'mode-watcher';
+	import './layout.css';
 
 	let { children } = $props();
 </script>

@@ -1,9 +1,9 @@
 <script lang="ts">
+	import * as Card from '$lib/components/ui/card/index.js';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import { userSettings } from '$lib/settings.svelte';
 	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { ArrowUpRight, ArrowDownLeft, Wallet } from '@lucide/svelte';
+	import { ArrowDownLeft, ArrowUpRight, Wallet } from '@lucide/svelte';
 
 	let myId = $derived(userSettings.myContactId ? parseInt(userSettings.myContactId) : null);
 

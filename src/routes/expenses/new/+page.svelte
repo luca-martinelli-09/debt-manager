@@ -1,20 +1,18 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { db } from '$lib/db';
-	import { contactsQuery, groupsQuery, categoriesQuery } from '$lib/db.svelte';
-	import { userSettings } from '$lib/settings.svelte';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
 	import SplitEditor from '$lib/components/SplitEditor.svelte';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
+	import { db } from '$lib/db';
+	import { categoriesQuery, contactsQuery, groupsQuery } from '$lib/db.svelte';
+	import { userSettings } from '$lib/settings.svelte';
+	import type { Split, SplitType } from '$lib/types';
+	import { ArrowLeft, Camera, Loader2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
-	import { ArrowLeft, Camera, Loader2, Info, FileText, Eye, Trash2 } from '@lucide/svelte';
-	import type { SplitType, Split } from '$lib/types';
 	import Tesseract from 'tesseract.js';
 
 	let title = $state('');
@@ -185,10 +183,12 @@
 		}
 	}
 	function getContactName(contactId: number) {
+		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
-			return 'Te (Io)';
+			return name + ' (Tu)';
 		}
-		return contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+		return name;
 	}
 </script>
 
@@ -214,8 +214,8 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="amount">Importo (€) *</Label>
-						<div class="relative">
-							<Input
+						<InputGroup.Root>
+							<InputGroup.Input
 								id="amount"
 								type="number"
 								step="0.01"
@@ -223,10 +223,11 @@
 								placeholder="0.00"
 								required
 							/>
-							<div class="absolute inset-y-0 right-0 flex items-center pr-3">
-								<label
-									for="ocr-upload"
-									class="cursor-pointer text-muted-foreground hover:text-primary"
+							<InputGroup.Addon align="inline-end">
+								<InputGroup.Button
+									variant="ghost"
+									size="sm"
+									class="relative text-muted-foreground hover:bg-transparent"
 									title="Scansiona scontrino con OCR"
 								>
 									{#if ocrLoading}
@@ -238,12 +239,12 @@
 										id="ocr-upload"
 										type="file"
 										accept="image/*"
-										class="hidden"
+										class="absolute inset-0 cursor-pointer opacity-0"
 										onchange={handleOCR}
 									/>
-								</label>
-							</div>
-						</div>
+								</InputGroup.Button>
+							</InputGroup.Addon>
+						</InputGroup.Root>
 					</div>
 				</div>
 

@@ -1,6 +1,5 @@
-import { db } from './db';
-import type { Contact, Group, Expense, Settlement, Category } from './types';
 import { liveQuery } from 'dexie';
+import { db } from './db';
 
 export function createQuery<T>(query: () => Promise<T> | T) {
 	let data = $state<T | undefined>(undefined);

@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import type { Contact, Split, SplitType } from '$lib/types';
 	import { Info } from '@lucide/svelte';
-	import type { SplitType, Split, Contact } from '$lib/types';
 
 	let {
 		splitType = $bindable(),

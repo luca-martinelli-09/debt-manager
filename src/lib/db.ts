@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Contact, Group, Expense, Settlement, Category } from './types';
+import type { Category, Contact, Expense, Group, Settlement } from './types';
 
 export class DebtManagerDB extends Dexie {
 	contacts!: EntityTable<Contact, 'id'>;

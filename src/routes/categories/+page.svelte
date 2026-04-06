@@ -1,10 +1,9 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { categoriesQuery } from '$lib/db.svelte';
-	import { db } from '$lib/db';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import { Plus, Tag, Trash2, Edit } from '@lucide/svelte';
+	import { db } from '$lib/db';
+	import { categoriesQuery } from '$lib/db.svelte';
+	import { Edit, Plus, Tag, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	async function deleteCategory(id: number) {

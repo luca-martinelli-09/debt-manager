@@ -1,9 +1,10 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { Home, Users, User, Receipt, Settings, Tag } from '@lucide/svelte';
+	import { Home, Receipt, Settings, Sparkles, Tag, User, Users } from '@lucide/svelte';
 
 	const items = [
 		{ title: 'Dashboard', url: '/', icon: Home },
+		{ title: 'Assistente AI', url: '/chat', icon: Sparkles },
 		{ title: 'Spese', url: '/expenses', icon: Receipt },
 		{ title: 'Gruppi', url: '/groups', icon: Users },
 		{ title: 'Contatti', url: '/contacts', icon: User },

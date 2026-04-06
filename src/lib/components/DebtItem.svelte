@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { TrendingUp, TrendingDown, Wallet } from '@lucide/svelte';
+	import { TrendingDown, TrendingUp, Wallet } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
 	let {

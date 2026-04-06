@@ -1,27 +1,18 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { db } from '$lib/db';
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
-	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { page } from '$app/state';
 	import DebtItem from '$lib/components/DebtItem.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
-	import { toast } from 'svelte-sonner';
-	import {
-		ArrowLeft,
-		User,
-		Wallet,
-		ArrowRight,
-		TrendingDown,
-		TrendingUp,
-		Trash2
-	} from '@lucide/svelte';
+	import { db } from '$lib/db';
+	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
+	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { ArrowLeft, Trash2, User, Wallet } from '@lucide/svelte';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	const id = parseInt(page.params.id || '0');
 	let name = $state('');

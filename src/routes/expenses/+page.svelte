@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { expensesQuery, contactsQuery } from '$lib/db.svelte';
-	import { userSettings } from '$lib/settings.svelte';
-	import { db } from '$lib/db';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import { Plus, Receipt, Trash2, Tag, Calendar, User, Edit, FileText, Eye } from '@lucide/svelte';
+	import { db } from '$lib/db';
+	import { contactsQuery, expensesQuery } from '$lib/db.svelte';
+	import { userSettings } from '$lib/settings.svelte';
+	import { Calendar, Edit, FileText, Plus, Receipt, Tag, Trash2, User } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	let searchQuery = $state('');

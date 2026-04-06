@@ -1,34 +1,21 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
-	import { db } from '$lib/db';
-	import { page } from '$app/state';
-	import { contactsQuery, groupsQuery, categoriesQuery } from '$lib/db.svelte';
-	import { userSettings } from '$lib/settings.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
 	import DebtItem from '$lib/components/DebtItem.svelte';
+	import SplitEditor from '$lib/components/SplitEditor.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
-	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
-	import SplitEditor from '$lib/components/SplitEditor.svelte';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import { toast } from 'svelte-sonner';
-	import {
-		ArrowLeft,
-		Loader2,
-		Info,
-		Trash2,
-		Camera,
-		FileText,
-		Eye,
-		TrendingDown,
-		TrendingUp,
-		Wallet
-	} from '@lucide/svelte';
-	import type { SplitType, Split, Expense } from '$lib/types';
+	import { db } from '$lib/db';
+	import { categoriesQuery, contactsQuery, groupsQuery } from '$lib/db.svelte';
+	import { userSettings } from '$lib/settings.svelte';
+	import type { Split, SplitType } from '$lib/types';
+	import { ArrowLeft, Camera, Loader2, Trash2, Wallet } from '@lucide/svelte';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import Tesseract from 'tesseract.js';
 
 	const id = parseInt(page.params.id || '0');
@@ -214,10 +201,12 @@
 	}
 
 	function getContactName(contactId: number) {
+		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
-			return 'Te (Io)';
+			return name + ' (Tu)';
 		}
-		return contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+		return name;
 	}
 
 	let computedDebts = $derived.by(() => {
@@ -227,7 +216,7 @@
 
 		for (const s of splits) {
 			if (s.contactId !== payer) {
-				let owed = 0;
+				let owed;
 				if (splitType === 'equally') {
 					owed = amount / (splits.length || 1);
 				} else if (splitType === 'percentage') {
