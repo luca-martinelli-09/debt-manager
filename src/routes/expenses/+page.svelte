@@ -2,8 +2,9 @@
 	import { appState } from '$lib/state.svelte';
 	import { db } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
-	import { Plus, Receipt, Trash2 } from '@lucide/svelte';
+	import { Plus, Receipt, Trash2, Pencil } from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card';
+
 	import * as Avatar from '$lib/components/ui/avatar';
 
 	async function deleteExpense(id: number) {
@@ -49,9 +50,14 @@
 					</div>
 					<div class="flex flex-col items-end gap-1">
 						<div class="font-bold">€ {expense.amount.toFixed(2)}</div>
-						<Button variant="ghost" size="icon" class="text-destructive h-6 w-6" onclick={() => deleteExpense(expense.id!)}>
-							<Trash2 class="h-3 w-3" />
-						</Button>
+						<div class="flex gap-1">
+							<Button variant="ghost" size="icon" class="h-6 w-6" href="/expenses/{expense.id}/edit">
+								<Pencil class="h-3 w-3" />
+							</Button>
+							<Button variant="ghost" size="icon" class="text-destructive h-6 w-6" onclick={() => deleteExpense(expense.id!)}>
+								<Trash2 class="h-3 w-3" />
+							</Button>
+						</div>
 					</div>
 				</Card.Content>
 			</Card.Root>
