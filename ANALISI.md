@@ -18,6 +18,10 @@ L'obiettivo è replicare l'esperienza di Splitwise eliminando la dipendenza dal 
 - **Data Portability:** Backup completo del database in un singolo file JSON scaricabile.
 - **OCR:** Estrazione del testo dagli scontrini caricati con Tesseract.js.
 - Semplificazione del debito
+- Design responsive che garantisca facilità d'uso su dispositivi mobili e desktop.
+
+Gruppi, spese, contatti, categorie devono poter essere sempre modificabili e cancellabili.
+Per gli id usa UUIDv7 per garantire unicità e ordinamento temporale.
 
 ---
 

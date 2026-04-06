@@ -76,6 +76,7 @@
 }
 
 @theme inline {
+	--spacing: 0.27rem;
 	--font-sans: 'Google Sans Variable', sans-serif;
 	--font-heading: 'Google Sans Variable', sans-serif;
 	--color-sidebar-ring: var(--sidebar-ring);

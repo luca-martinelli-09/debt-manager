@@ -1,0 +1,16 @@
+{
+  "name": "Debt Manager",
+  "short_name": "DebtMgr",
+  "description": "Gestisci i tuoi debiti e spese in modo privato e offline.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
