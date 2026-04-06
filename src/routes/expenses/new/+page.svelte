@@ -9,6 +9,8 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
+	import SplitEditor from '$lib/components/SplitEditor.svelte';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { toast } from 'svelte-sonner';
 	import { ArrowLeft, Camera, Loader2, Info, FileText, Eye, Trash2 } from '@lucide/svelte';
@@ -182,6 +184,12 @@
 			loading = false;
 		}
 	}
+	function getContactName(contactId: number) {
+		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
+			return 'Te (Io)';
+		}
+		return contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
+	}
 </script>
 
 <div class="mb-6">
@@ -264,67 +272,7 @@
 				</div>
 
 				<!-- Allegati -->
-				<div class="space-y-3">
-					<Label>Allegati (Scontrini/Ricevute)</Label>
-					<Input
-						type="file"
-						multiple
-						accept="image/*,application/pdf"
-						onchange={(e) => {
-							const target = e.target as HTMLInputElement;
-							if (target.files && target.files.length > 0) {
-								attachments = [...attachments, ...Array.from(target.files)];
-							}
-						}}
-					/>
-					{#if attachments.length > 0}
-						<div class="rounded-md border">
-							<table class="w-full text-sm">
-								<tbody>
-									{#each attachments as att, i}
-										<tr class="border-b last:border-0 hover:bg-muted/50">
-											<td class="p-2">
-												<div class="flex items-center gap-2">
-													<FileText class="h-4 w-4 shrink-0 text-muted-foreground" />
-													<span class="block max-w-[200px] truncate sm:max-w-xs">
-														{att instanceof File ? att.name : 'Allegato ' + (i + 1)}
-													</span>
-												</div>
-											</td>
-											<td class="w-[100px] p-2 text-right">
-												<div class="flex justify-end gap-1">
-													<Button
-														variant="ghost"
-														size="icon"
-														class="h-8 w-8"
-														type="button"
-														onclick={() => {
-															const url = URL.createObjectURL(att);
-															window.open(url, '_blank');
-														}}
-													>
-														<Eye class="h-4 w-4" />
-													</Button>
-													<Button
-														variant="ghost"
-														size="icon"
-														class="h-8 w-8 text-destructive"
-														type="button"
-														onclick={() => {
-															attachments = attachments.filter((_, idx) => idx !== i);
-														}}
-													>
-														<Trash2 class="h-4 w-4" />
-													</Button>
-												</div>
-											</td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-					{/if}
-				</div>
+				<AttachmentEditor bind:attachments />
 
 				<!-- Group & Payer -->
 				<div class="grid gap-4 sm:grid-cols-2">
@@ -358,114 +306,7 @@
 				</div>
 
 				<!-- Splitting Logic -->
-				<div class="space-y-4">
-					<Label>Suddivisione ({splits.length} selezionati)</Label>
-					<Tabs.Root bind:value={splitType} class="w-full">
-						<Tabs.List class="grid w-full grid-cols-3">
-							<Tabs.Trigger value="equally">Equamente</Tabs.Trigger>
-							<Tabs.Trigger value="unequally">Quote</Tabs.Trigger>
-							<Tabs.Trigger value="percentage">Percentuale</Tabs.Trigger>
-						</Tabs.List>
-
-						<div class="mt-4 space-y-4">
-							{#if splitType === 'equally'}
-								<div
-									class="flex items-center rounded-md bg-muted p-4 text-sm text-muted-foreground"
-								>
-									<Info class="mr-2 h-4 w-4" />
-									La spesa sarà divisa equamente tra le persone spuntate qui sotto ({splits.length >
-									0
-										? (amount / splits.length).toFixed(2)
-										: '0.00'}€ a testa).
-								</div>
-							{/if}
-
-							<div class="space-y-3">
-								{#each availableContacts as contact (contact.id)}
-									{@const splitIdx = splits.findIndex((s) => s.contactId === contact.id)}
-									{@const isParticipating = splitIdx !== -1}
-									<div class="flex items-center justify-between gap-4">
-										<div class="flex items-center gap-3">
-											{#if splitType === 'equally'}
-												<Checkbox
-													checked={isParticipating}
-													onCheckedChange={(v) => {
-														if (v) {
-															splits = [...splits, { contactId: contact.id!, value: 0 }];
-														} else {
-															splits = splits.filter((s) => s.contactId !== contact.id);
-														}
-													}}
-												/>
-											{/if}
-											<span
-												class="text-sm font-medium {isParticipating ? '' : 'text-muted-foreground'}"
-											>
-												{contact.name}
-											</span>
-										</div>
-
-										{#if splitType === 'equally'}
-											{#if isParticipating}
-												<span class="text-sm font-medium"
-													>{(amount / (splits.length || 1)).toFixed(2)}€</span
-												>
-											{:else}
-												<span class="text-sm text-muted-foreground">0.00€</span>
-											{/if}
-										{:else if splitType === 'unequally'}
-											<div class="relative w-32">
-												<Input
-													type="number"
-													step="0.01"
-													value={isParticipating ? splits[splitIdx].value : 0}
-													oninput={(e) => {
-														const val = parseFloat(e.currentTarget.value) || 0;
-														if (isParticipating) {
-															splits = splits.map((s) =>
-																s.contactId === contact.id ? { ...s, value: val } : s
-															);
-														} else if (val > 0) {
-															splits = [...splits, { contactId: contact.id!, value: val }];
-														}
-													}}
-													class="pr-6 text-right"
-												/>
-												<span
-													class="absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground"
-													>€</span
-												>
-											</div>
-										{:else if splitType === 'percentage'}
-											<div class="relative w-32">
-												<Input
-													type="number"
-													step="1"
-													value={isParticipating ? splits[splitIdx].value : 0}
-													oninput={(e) => {
-														const val = parseFloat(e.currentTarget.value) || 0;
-														if (isParticipating) {
-															splits = splits.map((s) =>
-																s.contactId === contact.id ? { ...s, value: val } : s
-															);
-														} else if (val > 0) {
-															splits = [...splits, { contactId: contact.id!, value: val }];
-														}
-													}}
-													class="pr-6 text-right"
-												/>
-												<span
-													class="absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground"
-													>%</span
-												>
-											</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						</div>
-					</Tabs.Root>
-				</div>
+				<SplitEditor bind:splitType bind:splits {amount} {availableContacts} {getContactName} />
 
 				<Button type="submit" class="w-full" disabled={loading}>
 					{loading ? 'Salvataggio...' : 'Aggiungi Spesa'}

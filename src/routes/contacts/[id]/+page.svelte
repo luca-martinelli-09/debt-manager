@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import DebtItem from '$lib/components/DebtItem.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -30,8 +31,6 @@
 	let fetching = $state(true);
 
 	// Per i pagamenti parziali in-line
-	let settlingDebtId = $state<string | null>(null);
-	let settleAmount = $state<number>(0);
 
 	onMount(async () => {
 		const contact = await db.contacts.get(id);
@@ -101,15 +100,10 @@
 				createdAt: new Date()
 			});
 			toast.success('Debito saldato con successo');
-			settlingDebtId = null; // Chiudi il form inline
+			// Chiudi il form inline
 		} catch (error) {
 			toast.error('Errore durante il saldo');
 		}
-	}
-
-	function startSettle(debt: { from: number; to: number; amount: number }) {
-		settlingDebtId = `${debt.from}-${debt.to}`;
-		settleAmount = debt.amount;
 	}
 
 	async function deleteSettlement(sid: number) {
@@ -175,65 +169,25 @@
 							<div class="space-y-4">
 								{#each contactDebts as debt}
 									{@const isDebtor = debt.from === id}
-									{@const debtId = `${debt.from}-${debt.to}`}
-									<div class="rounded-lg border p-4 shadow-sm">
-										<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-											<div class="flex items-center gap-3">
-												{#if isDebtor}
-													<TrendingDown
-														class="h-8 w-8 rounded-full bg-destructive/10 p-1.5 text-destructive"
-													/>
-													<div class="text-sm">
-														<p><span class="font-bold">{name}</span> deve dare</p>
-														<p class="font-bold text-destructive">
-															{debt.amount.toFixed(2)}€ a {getContactName(debt.to)}
-														</p>
-													</div>
-												{:else}
-													<TrendingUp
-														class="h-8 w-8 rounded-full bg-emerald-500/10 p-1.5 text-emerald-500"
-													/>
-													<div class="text-sm">
-														<p><span class="font-bold">{name}</span> deve ricevere</p>
-														<p class="font-bold text-emerald-500">
-															{debt.amount.toFixed(2)}€ da {getContactName(debt.from)}
-														</p>
-													</div>
-												{/if}
-											</div>
-
-											{#if settlingDebtId !== debtId}
-												<Button variant="outline" size="sm" onclick={() => startSettle(debt)}>
-													<Wallet class="mr-2 h-4 w-4" /> Salda
-												</Button>
+									<DebtItem
+										amount={debt.amount}
+										isNegative={isDebtor}
+										onSettle={(amt) => settleDebt(debt.from, debt.to, amt)}
+									>
+										{#snippet descriptionSnippet()}
+											{#if isDebtor}
+												<p><span class="font-bold">{name}</span> deve dare</p>
+												<p class="font-bold text-destructive">
+													{debt.amount.toFixed(2)}€ a {getContactName(debt.to)}
+												</p>
+											{:else}
+												<p><span class="font-bold">{name}</span> deve ricevere</p>
+												<p class="font-bold text-emerald-500">
+													{debt.amount.toFixed(2)}€ da {getContactName(debt.from)}
+												</p>
 											{/if}
-										</div>
-
-										{#if settlingDebtId === debtId}
-											<div
-												class="mt-4 flex flex-col gap-3 rounded-md border bg-muted/50 p-4 sm:flex-row sm:items-end"
-											>
-												<div class="flex-1 space-y-1">
-													<Label class="text-xs">Importo da saldare (€)</Label>
-													<Input
-														type="number"
-														step="0.01"
-														max={debt.amount}
-														min="0.01"
-														bind:value={settleAmount}
-													/>
-												</div>
-												<div class="flex gap-2">
-													<Button variant="ghost" onclick={() => (settlingDebtId = null)}
-														>Annulla</Button
-													>
-													<Button onclick={() => settleDebt(debt.from, debt.to, settleAmount)}
-														>Conferma</Button
-													>
-												</div>
-											</div>
-										{/if}
-									</div>
+										{/snippet}
+									</DebtItem>
 								{/each}
 							</div>
 						{/if}

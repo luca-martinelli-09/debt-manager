@@ -5,11 +5,14 @@
 	import { contactsQuery, groupsQuery, categoriesQuery } from '$lib/db.svelte';
 	import { userSettings } from '$lib/settings.svelte';
 	import { goto } from '$app/navigation';
+	import DebtItem from '$lib/components/DebtItem.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
+	import SplitEditor from '$lib/components/SplitEditor.svelte';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -44,8 +47,6 @@
 	let ocrLoading = $state(false);
 
 	// Variabili per il saldo rapido
-	let settlingDebtId = $state<string | null>(null);
-	let settleAmount = $state<number>(0);
 
 	onMount(async () => {
 		const expense = await db.expenses.get(id);
@@ -243,11 +244,6 @@
 		return debts;
 	});
 
-	function startSettle(debt: { from: number; to: number; amount: number }) {
-		settlingDebtId = `${debt.from}-${debt.to}`;
-		settleAmount = debt.amount;
-	}
-
 	async function settleDebt(from: number, to: number, settleAmt: number) {
 		if (settleAmt <= 0) {
 			toast.error("L'importo deve essere maggiore di zero");
@@ -263,7 +259,6 @@
 				createdAt: new Date()
 			});
 			toast.success('Debito saldato con successo');
-			settlingDebtId = null;
 		} catch (error) {
 			toast.error('Errore durante il saldo');
 		}
@@ -354,67 +349,7 @@
 							</div>
 
 							<!-- Allegati -->
-							<div class="space-y-3">
-								<Label>Allegati (Scontrini/Ricevute)</Label>
-								<Input
-									type="file"
-									multiple
-									accept="image/*,application/pdf"
-									onchange={(e) => {
-										const target = e.target as HTMLInputElement;
-										if (target.files && target.files.length > 0) {
-											attachments = [...attachments, ...Array.from(target.files)];
-										}
-									}}
-								/>
-								{#if attachments.length > 0}
-									<div class="rounded-md border">
-										<table class="w-full text-sm">
-											<tbody>
-												{#each attachments as att, i}
-													<tr class="border-b last:border-0 hover:bg-muted/50">
-														<td class="p-2">
-															<div class="flex items-center gap-2">
-																<FileText class="h-4 w-4 shrink-0 text-muted-foreground" />
-																<span class="block max-w-[200px] truncate sm:max-w-xs">
-																	{att instanceof File ? att.name : 'Allegato ' + (i + 1)}
-																</span>
-															</div>
-														</td>
-														<td class="w-[100px] p-2 text-right">
-															<div class="flex justify-end gap-1">
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	class="h-8 w-8"
-																	type="button"
-																	onclick={() => {
-																		const url = URL.createObjectURL(att);
-																		window.open(url, '_blank');
-																	}}
-																>
-																	<Eye class="h-4 w-4" />
-																</Button>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	class="h-8 w-8"
-																	type="button"
-																	onclick={() => {
-																		attachments = attachments.filter((_, idx) => idx !== i);
-																	}}
-																>
-																	<Trash2 class="h-4 w-4 text-destructive" />
-																</Button>
-															</div>
-														</td>
-													</tr>
-												{/each}
-											</tbody>
-										</table>
-									</div>
-								{/if}
-							</div>
+							<AttachmentEditor bind:attachments />
 
 							<div class="grid gap-4 sm:grid-cols-2">
 								<div class="space-y-2">
@@ -445,116 +380,14 @@
 								</div>
 							</div>
 
-							<div class="space-y-4">
-								<Label>Suddivisione ({splits.length} selezionati)</Label>
-								<Tabs.Root bind:value={splitType} class="w-full">
-									<Tabs.List class="grid w-full grid-cols-3">
-										<Tabs.Trigger value="equally">Equamente</Tabs.Trigger>
-										<Tabs.Trigger value="unequally">Quote</Tabs.Trigger>
-										<Tabs.Trigger value="percentage">Percentuale</Tabs.Trigger>
-									</Tabs.List>
-
-									<div class="mt-4 space-y-4">
-										{#if splitType === 'equally'}
-											<div
-												class="flex items-center rounded-md bg-muted p-4 text-sm text-muted-foreground"
-											>
-												<Info class="mr-2 h-4 w-4" />
-												La spesa sarà divisa equamente tra le persone spuntate qui sotto ({splits.length >
-												0
-													? (amount / splits.length).toFixed(2)
-													: '0.00'}€ a testa).
-											</div>
-										{/if}
-
-										<div class="space-y-3">
-											{#each availableContacts as contact (contact.id)}
-												{@const splitIdx = splits.findIndex((s) => s.contactId === contact.id)}
-												{@const isParticipating = splitIdx !== -1}
-												<div class="flex items-center justify-between gap-4">
-													<div class="flex items-center gap-3">
-														{#if splitType === 'equally'}
-															<Checkbox
-																checked={isParticipating}
-																onCheckedChange={(v) => {
-																	if (v) {
-																		splits = [...splits, { contactId: contact.id!, value: 0 }];
-																	} else {
-																		splits = splits.filter((s) => s.contactId !== contact.id);
-																	}
-																}}
-															/>
-														{/if}
-														<span
-															class="text-sm font-medium {isParticipating
-																? ''
-																: 'text-muted-foreground'}"
-														>
-															{getContactName(contact.id!)}
-														</span>
-													</div>
-
-													{#if splitType === 'equally'}
-														{#if isParticipating}
-															<span class="text-sm font-medium"
-																>{(amount / (splits.length || 1)).toFixed(2)}€</span
-															>
-														{:else}
-															<span class="text-sm text-muted-foreground">0.00€</span>
-														{/if}
-													{:else if splitType === 'unequally'}
-														<div class="relative w-32">
-															<Input
-																type="number"
-																step="0.01"
-																value={isParticipating ? splits[splitIdx].value : 0}
-																oninput={(e) => {
-																	const val = parseFloat(e.currentTarget.value) || 0;
-																	if (isParticipating) {
-																		splits = splits.map((s) =>
-																			s.contactId === contact.id ? { ...s, value: val } : s
-																		);
-																	} else if (val > 0) {
-																		splits = [...splits, { contactId: contact.id!, value: val }];
-																	}
-																}}
-																class="pr-6 text-right"
-															/>
-															<span
-																class="absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground"
-																>€</span
-															>
-														</div>
-													{:else if splitType === 'percentage'}
-														<div class="relative w-32">
-															<Input
-																type="number"
-																step="1"
-																value={isParticipating ? splits[splitIdx].value : 0}
-																oninput={(e) => {
-																	const val = parseFloat(e.currentTarget.value) || 0;
-																	if (isParticipating) {
-																		splits = splits.map((s) =>
-																			s.contactId === contact.id ? { ...s, value: val } : s
-																		);
-																	} else if (val > 0) {
-																		splits = [...splits, { contactId: contact.id!, value: val }];
-																	}
-																}}
-																class="pr-6 text-right"
-															/>
-															<span
-																class="absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground"
-																>%</span
-															>
-														</div>
-													{/if}
-												</div>
-											{/each}
-										</div>
-									</div>
-								</Tabs.Root>
-							</div>
+							<!-- Splitting Logic -->
+							<SplitEditor
+								bind:splitType
+								bind:splits
+								{amount}
+								{availableContacts}
+								{getContactName}
+							/>
 
 							<Button type="submit" class="w-full" disabled={loading}>
 								{loading ? 'Salvataggio...' : 'Aggiorna Spesa'}
@@ -587,54 +420,19 @@
 						{:else}
 							<div class="space-y-4">
 								{#each computedDebts as debt}
-									{@const debtId = `${debt.from}-${debt.to}`}
-									<div class="rounded-lg border p-4 shadow-sm">
-										<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-											<div class="flex items-center gap-3">
-												<TrendingUp
-													class="h-8 w-8 rounded-full bg-emerald-500/10 p-1.5 text-emerald-500"
-												/>
-												<div class="text-sm">
-													<p>
-														<span class="font-bold">{getContactName(debt.from)}</span> deve a
-														<span class="font-bold">{getContactName(debt.to)}</span>
-													</p>
-													<p class="font-bold text-emerald-500">{debt.amount.toFixed(2)}€</p>
-												</div>
-											</div>
-
-											{#if settlingDebtId !== debtId}
-												<Button variant="outline" size="sm" onclick={() => startSettle(debt)}>
-													<Wallet class="mr-2 h-4 w-4" /> Paga la sua quota
-												</Button>
-											{/if}
-										</div>
-
-										{#if settlingDebtId === debtId}
-											<div
-												class="mt-4 flex flex-col gap-3 rounded-md border bg-muted/50 p-4 sm:flex-row sm:items-end"
-											>
-												<div class="flex-1 space-y-1">
-													<Label class="text-xs">Importo da saldare (€)</Label>
-													<Input
-														type="number"
-														step="0.01"
-														max={debt.amount}
-														min="0.01"
-														bind:value={settleAmount}
-													/>
-												</div>
-												<div class="flex gap-2">
-													<Button variant="ghost" onclick={() => (settlingDebtId = null)}
-														>Annulla</Button
-													>
-													<Button onclick={() => settleDebt(debt.from, debt.to, settleAmount)}
-														>Conferma Pagamento</Button
-													>
-												</div>
-											</div>
-										{/if}
-									</div>
+									<DebtItem
+										amount={debt.amount}
+										isNegative={false}
+										onSettle={(amt) => settleDebt(debt.from, debt.to, amt)}
+									>
+										{#snippet descriptionSnippet()}
+											<p>
+												<span class="font-bold">{getContactName(debt.from)}</span> deve a
+												<span class="font-bold">{getContactName(debt.to)}</span>
+											</p>
+											<p class="font-bold text-emerald-500">{debt.amount.toFixed(2)}€</p>
+										{/snippet}
+									</DebtItem>
 								{/each}
 							</div>
 						{/if}
