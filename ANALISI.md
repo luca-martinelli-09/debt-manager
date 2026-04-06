@@ -37,3 +37,5 @@ Form: formsnap e Zod4 (importato come zod4 e usato come zod4()) - https://www.sh
 Design: pulito e minimale, uso della sidebar di Shadcn-Svelte per la navigazione, tasto "Nuova Spesa" sempre visibile come FAB centrale, datatable per contatti, gruppi, spese. Ogni azione (modifica gruppo, creazione gruppo, creazione contatto, modifica contatto, creazione spesa, modifica spesa) avrà una pagina dedicata.
 Typescript: VIETATO usare `any` o `unknown`. Tutti i tipi devono essere definiti esplicitamente per garantire la sicurezza del tipo e la manutenibilità del codice.
 Eseguire sempre il linting e il formatting del codice con Prettier e ESLint per verificare la presenza di errori e mantenere uno stile di codice coerente.
+Consulta la documentazione ufficiale di SvelteKit, Dexie.js e Shadcn-Svelte per best practices e pattern consigliati.
+Usa i Sonner per notifiche utente (successo, errore, info) in modo coerente in tutta l'applicazione.
