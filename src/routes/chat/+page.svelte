@@ -161,8 +161,8 @@
 	}
 </script>
 
-<div class="flex h-[calc(100vh-6rem)] flex-col">
-	<div class="mb-4 flex items-center justify-between border-b pb-4">
+<div class="flex h-full flex-col">
+	<div class="flex shrink-0 items-center justify-between pb-4">
 		<div>
 			<h1 class="flex items-center gap-2 text-2xl font-bold">
 				<Sparkles class="text-primary" /> Assistente AI
@@ -189,7 +189,10 @@
 			</Button>
 		</div>
 	{:else}
-		<div id="chat-container" class="flex-1 overflow-y-auto px-2 md:px-6">
+		<div
+			id="chat-container"
+			class="flex-1 overflow-y-auto px-2 pt-4 [-ms-overflow-style:none] [scrollbar-width:none] md:px-6 [&::-webkit-scrollbar]:hidden"
+		>
 			<div class="mx-auto flex max-w-4xl flex-col space-y-6 pb-6">
 				{#each messages as msg}
 					<div class="flex w-full {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
@@ -304,7 +307,7 @@
 		</div>
 
 		<!-- Area di Input -->
-		<div class="mx-auto w-full max-w-4xl pt-4">
+		<div class="mx-auto w-full max-w-4xl shrink-0 pt-2 pb-2">
 			{#if attachedFile}
 				<div
 					class="mb-2 flex w-max max-w-full items-center gap-2 rounded-lg border bg-card p-2 pr-3 shadow-sm"

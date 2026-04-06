@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
@@ -18,7 +19,7 @@
 	import { toast } from 'svelte-sonner';
 	import Tesseract from 'tesseract.js';
 
-	const id = parseInt(page.params.id || '0');
+	const id = page.params.id || '';
 	let title = $state('');
 	let amount = $state<number>(0);
 	let date = $state('');
@@ -63,7 +64,7 @@
 
 	let availableContacts = $derived.by(() => {
 		const contacts = contactsQuery.value || [];
-		const gId = groupId ? parseInt(groupId) : null;
+		const gId = groupId ? groupId : null;
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
@@ -74,13 +75,13 @@
 	});
 
 	function handleGroupChange() {
-		const gId = groupId ? parseInt(groupId) : null;
+		const gId = groupId ? groupId : null;
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
 				splits = group.memberIds.map((memberId) => ({ contactId: memberId, value: 0 }));
-				if (!paidById || !group.memberIds.includes(parseInt(paidById))) {
-					const myId = userSettings.myContactId ? parseInt(userSettings.myContactId) : null;
+				if (!paidById || !group.memberIds.includes(paidById)) {
+					const myId = userSettings.myContactId ? userSettings.myContactId : null;
 					paidById =
 						myId && group.memberIds.includes(myId)
 							? myId.toString()
@@ -164,16 +165,15 @@
 
 		loading = true;
 		try {
-			const catName =
-				categoriesQuery.value?.find((c) => c.id === parseInt(categoryId))?.name || 'Generale';
+			const catName = categoriesQuery.value?.find((c) => c.id === categoryId)?.name || 'Generale';
 			await db.expenses.update(id, {
 				title,
 				amount,
 				date: new Date(date),
-				categoryId: parseInt(categoryId),
+				categoryId: categoryId,
 				category: catName,
-				groupId: groupId ? parseInt(groupId) : undefined,
-				paidById: parseInt(paidById),
+				groupId: groupId ? groupId : undefined,
+				paidById: paidById,
 				splitType,
 				splits: finalSplits,
 				attachments: attachments.length > 0 ? [...attachments] : undefined
@@ -200,7 +200,7 @@
 		}
 	}
 
-	function getContactName(contactId: number) {
+	function getContactName(contactId: string) {
 		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
 
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {
@@ -211,7 +211,7 @@
 
 	let computedDebts = $derived.by(() => {
 		if (!paidById) return [];
-		const payer = parseInt(paidById);
+		const payer = paidById;
 		const debts = [];
 
 		for (const s of splits) {
@@ -233,18 +233,19 @@
 		return debts;
 	});
 
-	async function settleDebt(from: number, to: number, settleAmt: number) {
+	async function settleDebt(from: string, to: string, settleAmt: number) {
 		if (settleAmt <= 0) {
 			toast.error("L'importo deve essere maggiore di zero");
 			return;
 		}
 		try {
 			await db.settlements.add({
+				id: uuidv7(),
 				fromContactId: from,
 				toContactId: to,
 				amount: settleAmt,
 				date: new Date(),
-				groupId: groupId ? parseInt(groupId) : undefined,
+				groupId: groupId ? groupId : undefined,
 				createdAt: new Date()
 			});
 			toast.success('Debito saldato con successo');

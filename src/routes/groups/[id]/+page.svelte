@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import DebtItem from '$lib/components/DebtItem.svelte';
@@ -14,11 +15,11 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	const groupId = parseInt(page.params.id || '0');
+	const groupId = page.params.id || '';
 
 	let currentGroup = $state<any>(null);
 	let name = $state('');
-	let selectedMemberIds = $state<number[]>([]);
+	let selectedMemberIds = $state<string[]>([]);
 	let loading = $state(false);
 	let fetching = $state(true);
 
@@ -42,23 +43,24 @@
 
 	let groupBalances = $derived.by(() => {
 		if (!currentGroup || !expensesQuery.value || !settlementsQuery.value)
-			return new Map<number, number>();
+			return new Map<string, number>();
 		return calculateBalances(groupExpenses, groupSettlements, currentGroup.memberIds);
 	});
 
 	let simplifiedDebts = $derived(simplifyDebts(groupBalances));
 
-	function getContactName(id: number) {
+	function getContactName(id: string) {
 		return contactsQuery.value?.find((c) => c.id === id)?.name || 'Sconosciuto';
 	}
 
-	async function settleDebt(from: number, to: number, amount: number) {
+	async function settleDebt(from: string, to: string, amount: number) {
 		if (amount <= 0) {
 			toast.error("L'importo deve essere maggiore di zero");
 			return;
 		}
 		try {
 			await db.settlements.add({
+				id: uuidv7(),
 				fromContactId: from,
 				toContactId: to,
 				amount,
@@ -72,7 +74,7 @@
 		}
 	}
 
-	async function deleteSettlement(id: number) {
+	async function deleteSettlement(id: string) {
 		if (confirm('Vuoi davvero eliminare questo pagamento?')) {
 			try {
 				await db.settlements.delete(id);
@@ -84,7 +86,7 @@
 	}
 
 	// Funzioni per l'Editing del gruppo
-	function toggleMember(contactId: number) {
+	function toggleMember(contactId: string) {
 		if (selectedMemberIds.includes(contactId)) {
 			selectedMemberIds = selectedMemberIds.filter((mid) => mid !== contactId);
 		} else {

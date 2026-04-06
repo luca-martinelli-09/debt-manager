@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -10,10 +11,10 @@
 	import { toast } from 'svelte-sonner';
 
 	let name = $state('');
-	let selectedMemberIds = $state<number[]>([]);
+	let selectedMemberIds = $state<string[]>([]);
 	let loading = $state(false);
 
-	function toggleMember(id: number) {
+	function toggleMember(id: string) {
 		if (selectedMemberIds.includes(id)) {
 			selectedMemberIds = selectedMemberIds.filter((mid) => mid !== id);
 		} else {
@@ -35,6 +36,7 @@
 		loading = true;
 		try {
 			await db.groups.add({
+				id: uuidv7(),
 				name,
 				memberIds: [...selectedMemberIds], // Rimuove il Proxy creando un nuovo array
 				createdAt: new Date()

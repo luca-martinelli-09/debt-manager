@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -23,6 +24,7 @@
 		loading = true;
 		try {
 			await db.contacts.add({
+				id: uuidv7(),
 				name,
 				email: email || undefined,
 				tel: tel || undefined,

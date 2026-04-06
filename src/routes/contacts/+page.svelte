@@ -9,7 +9,7 @@
 	import { toast } from 'svelte-sonner';
 
 	let searchQuery = $state('');
-	let myId = $derived(userSettings.myContactId ? parseInt(userSettings.myContactId) : null);
+	let myId = $derived(userSettings.myContactId ? userSettings.myContactId : null);
 
 	let allDebts = $derived.by(() => {
 		if (!contactsQuery.value || !expensesQuery.value || !settlementsQuery.value) return [];
@@ -18,7 +18,7 @@
 		return simplifyDebts(balances);
 	});
 
-	function getNetBalance(contactId: number) {
+	function getNetBalance(contactId: string) {
 		if (myId && myId !== contactId) {
 			const debtToMe = allDebts.find((d) => d.from === contactId && d.to === myId)?.amount || 0;
 			const debtFromMe = allDebts.find((d) => d.from === myId && d.to === contactId)?.amount || 0;
@@ -41,7 +41,7 @@
 		);
 	});
 
-	async function deleteContact(id: number) {
+	async function deleteContact(id: string) {
 		if (confirm('Sei sicuro di voler eliminare questo contatto?')) {
 			try {
 				await db.contacts.delete(id);

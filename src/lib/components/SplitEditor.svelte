@@ -17,7 +17,7 @@
 		splits: Split[];
 		amount: number;
 		availableContacts: Contact[];
-		getContactName: (id: number) => string;
+		getContactName: (id: string) => string;
 	}>();
 </script>
 

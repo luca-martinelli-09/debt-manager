@@ -3,9 +3,9 @@ import type { Debt, Expense, Settlement } from '../types';
 export function calculateBalances(
 	expenses: Expense[],
 	settlements: Settlement[],
-	contactIds: number[]
-): Map<number, number> {
-	const balances = new Map<number, number>();
+	contactIds: string[]
+): Map<string, number> {
+	const balances = new Map<string, number>();
 	contactIds.forEach((id) => balances.set(id, 0));
 
 	// Process expenses
@@ -42,9 +42,9 @@ export function calculateBalances(
 	return balances;
 }
 
-export function simplifyDebts(balancesMap: Map<number, number>): Debt[] {
-	const debtors: { id: number; balance: number }[] = [];
-	const creditors: { id: number; balance: number }[] = [];
+export function simplifyDebts(balancesMap: Map<string, number>): Debt[] {
+	const debtors: { id: string; balance: number }[] = [];
+	const creditors: { id: string; balance: number }[] = [];
 
 	balancesMap.forEach((balance, id) => {
 		if (balance < -0.01) {

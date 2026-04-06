@@ -8,7 +8,7 @@
 	import { toast } from 'svelte-sonner';
 
 	let searchQuery = $state('');
-	let myId = $derived(userSettings.myContactId ? parseInt(userSettings.myContactId) : null);
+	let myId = $derived(userSettings.myContactId ? userSettings.myContactId : null);
 
 	let filteredExpenses = $derived.by(() => {
 		const expenses = expensesQuery.value || [];
@@ -20,7 +20,7 @@
 		);
 	});
 
-	async function deleteExpense(id: number) {
+	async function deleteExpense(id: string) {
 		if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
 			try {
 				await db.expenses.delete(id);
@@ -31,7 +31,7 @@
 		}
 	}
 
-	function getPayerName(id: number) {
+	function getPayerName(id: string) {
 		if (myId && id === myId) return 'Tu';
 		return contactsQuery.value?.find((c) => c.id === id)?.name || 'Sconosciuto';
 	}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -21,11 +22,7 @@
 
 		loading = true;
 		try {
-			await db.categories.add({
-				name,
-				color,
-				createdAt: new Date()
-			});
+			await db.categories.add({ id: uuidv7(), name, color, createdAt: new Date() });
 			toast.success('Categoria creata con successo');
 			goto('/categories');
 		} catch (error) {

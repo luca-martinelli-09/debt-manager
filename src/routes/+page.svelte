@@ -5,7 +5,7 @@
 	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
 	import { ArrowDownLeft, ArrowUpRight, Wallet } from '@lucide/svelte';
 
-	let myId = $derived(userSettings.myContactId ? parseInt(userSettings.myContactId) : null);
+	let myId = $derived(userSettings.myContactId ? userSettings.myContactId : null);
 
 	let totalBalance = $derived.by(() => {
 		const contacts = contactsQuery.value;
@@ -72,7 +72,7 @@
 		const settlements = settlementsQuery.value || [];
 		const contacts = contactsQuery.value || [];
 
-		const getContactName = (id: number) => contacts.find((c) => c.id === id)?.name || 'Sconosciuto';
+		const getContactName = (id: string) => contacts.find((c) => c.id === id)?.name || 'Sconosciuto';
 
 		const activity = [
 			...expenses.map((e) => ({

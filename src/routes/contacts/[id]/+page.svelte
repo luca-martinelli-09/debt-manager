@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import DebtItem from '$lib/components/DebtItem.svelte';
@@ -14,7 +15,7 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	const id = parseInt(page.params.id || '0');
+	const id = page.params.id || '';
 	let name = $state('');
 	let email = $state('');
 	let tel = $state('');
@@ -50,7 +51,7 @@
 		return s.filter((d) => d.fromContactId === id || d.toContactId === id);
 	});
 
-	function getContactName(cId: number) {
+	function getContactName(cId: string) {
 		return contactsQuery.value?.find((c) => c.id === cId)?.name || 'Sconosciuto';
 	}
 
@@ -77,13 +78,14 @@
 		}
 	}
 
-	async function settleDebt(from: number, to: number, amount: number) {
+	async function settleDebt(from: string, to: string, amount: number) {
 		if (amount <= 0) {
 			toast.error("L'importo deve essere maggiore di zero");
 			return;
 		}
 		try {
 			await db.settlements.add({
+				id: uuidv7(),
 				fromContactId: from,
 				toContactId: to,
 				amount,
@@ -97,7 +99,7 @@
 		}
 	}
 
-	async function deleteSettlement(sid: number) {
+	async function deleteSettlement(sid: string) {
 		if (confirm('Vuoi davvero eliminare questo pagamento?')) {
 			try {
 				await db.settlements.delete(sid);

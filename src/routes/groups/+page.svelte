@@ -9,7 +9,7 @@
 	import { toast } from 'svelte-sonner';
 
 	let searchQuery = $state('');
-	let myId = $derived(userSettings.myContactId ? parseInt(userSettings.myContactId) : null);
+	let myId = $derived(userSettings.myContactId ? userSettings.myContactId : null);
 
 	let filteredGroups = $derived.by(() => {
 		const groups = groupsQuery.value || [];
@@ -17,7 +17,7 @@
 		return groups.filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
 	});
 
-	function getMemberNames(memberIds: number[]) {
+	function getMemberNames(memberIds: string[]) {
 		const contacts = contactsQuery.value || [];
 		return memberIds
 			.map((id) => {
@@ -28,7 +28,7 @@
 			.join(', ');
 	}
 
-	function getGroupBalance(groupId: number, memberIds: number[]) {
+	function getGroupBalance(groupId: string, memberIds: string[]) {
 		if (!myId || !memberIds.includes(myId)) return null;
 
 		const gExpenses = (expensesQuery.value || []).filter((e) => e.groupId === groupId);
@@ -38,7 +38,7 @@
 		return balances.get(myId) || 0;
 	}
 
-	async function deleteGroup(id: number) {
+	async function deleteGroup(id: string) {
 		if (
 			confirm(
 				'Sei sicuro di voler eliminare questo gruppo? Tutti i dati associati potrebbero diventare orfani.'

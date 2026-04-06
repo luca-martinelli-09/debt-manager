@@ -1,12 +1,12 @@
 export interface Category {
-	id?: number;
+	id?: string;
 	name: string;
 	color?: string;
 	createdAt: Date;
 }
 
 export interface Contact {
-	id?: number;
+	id?: string;
 	name: string;
 	avatar?: string;
 	email?: string;
@@ -15,28 +15,28 @@ export interface Contact {
 }
 
 export interface Group {
-	id?: number;
+	id?: string;
 	name: string;
-	memberIds: number[];
+	memberIds: string[];
 	createdAt: Date;
 }
 
 export type SplitType = 'equally' | 'unequally' | 'percentage';
 
 export interface Split {
-	contactId: number;
+	contactId: string;
 	value: number; // amount, percentage, or weight depending on SplitType
 }
 
 export interface Expense {
-	id?: number;
+	id?: string;
 	title: string;
 	amount: number;
 	date: Date;
-	categoryId?: number;
+	categoryId?: string;
 	category?: string; // Fallback per retrocompatibilità
-	groupId?: number; // Optional for 1-1 expenses
-	paidById: number;
+	groupId?: string; // Optional for 1-1 expenses
+	paidById: string;
 	splitType: SplitType;
 	splits: Split[];
 	attachment?: Blob; // Deprecato, usato per retrocompatibilità
@@ -45,17 +45,17 @@ export interface Expense {
 }
 
 export interface Settlement {
-	id?: number;
-	fromContactId: number;
-	toContactId: number;
+	id?: string;
+	fromContactId: string;
+	toContactId: string;
 	amount: number;
 	date: Date;
-	groupId?: number;
+	groupId?: string;
 	createdAt: Date;
 }
 
 export interface Debt {
-	from: number;
-	to: number;
+	from: string;
+	to: string;
 	amount: number;
 }

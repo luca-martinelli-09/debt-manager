@@ -6,7 +6,7 @@
 	import { Edit, Plus, Tag, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
-	async function deleteCategory(id: number) {
+	async function deleteCategory(id: string) {
 		if (confirm('Sei sicuro di voler eliminare questa categoria?')) {
 			try {
 				await db.categories.delete(id);

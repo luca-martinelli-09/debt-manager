@@ -51,24 +51,24 @@ export const debtManagerTools: Tool[] = [
 						},
 						amount: { type: Type.NUMBER, description: 'Importo totale speso, espresso in euro.' },
 						categoryId: {
-							type: Type.NUMBER,
+							type: Type.STRING,
 							description:
-								'ID della categoria. Prima di invocarmi dovresti aver cercato la lista con get_all_categories. Se non sai quale scegliere omatte, usa 5 (Generale).'
+								'ID della categoria. Prima di invocarmi dovresti aver cercato la lista con get_all_categories. Se non sai quale scegliere omatte, usa quella che sembra più adatta o lascia vuoto.'
 						},
 						paidById: {
-							type: Type.NUMBER,
+							type: Type.STRING,
 							description:
-								"ID del contatto che ha fisicamente pagato. Se non specificato diversamente o se non lo sai, usa il \"myContactId\" (ovvero l'utente che sta parlando) se c'è, altrimenti usa l'id 1."
+								"ID del contatto che ha fisicamente pagato. Se non specificato diversamente o se non lo sai, usa il \"myContactId\" (ovvero l'utente che sta parlando) se c'è."
 						},
 						groupId: {
-							type: Type.NUMBER,
+							type: Type.STRING,
 							description: 'ID del gruppo, opzionale, se la spesa fa parte di un gruppo.'
 						},
 						splitParticipantIds: {
 							type: Type.ARRAY,
-							items: { type: Type.NUMBER },
+							items: { type: Type.STRING },
 							description:
-								'Array degli ID dei contatti tra cui dividere in modo equo la spesa. Attenzione: se Mario paga la pizza e divide con Anna, qua devi inserire ENTRAMBI i loro ID (es. [1, 2]) altrimenti il saldo andrà in negativo solo al poveretto che ha pagato.'
+								'Array degli ID (stringhe UUID) dei contatti tra cui dividere in modo equo la spesa. Attenzione: se Mario paga la pizza e divide con Anna, qua devi inserire ENTRAMBI i loro ID altrimenti il saldo andrà in negativo solo al poveretto che ha pagato.'
 						}
 					},
 					required: ['title', 'amount', 'paidById', 'splitParticipantIds']
@@ -97,11 +97,11 @@ export const toolHandlers: Record<string, Function> = {
 		const settlements = await db.settlements.toArray();
 		const contacts = await db.contacts.toArray();
 
-		const allIds = contacts.map((c) => c.id!);
+		const allIds = contacts.map((c) => c.id).filter((c) => c !== undefined);
 		const balances = calculateBalances(expenses, settlements, allIds);
 		const debts = simplifyDebts(balances);
 
-		let myId = userSettings.myContactId ? parseInt(userSettings.myContactId) : null;
+		let myId = userSettings.myContactId ? userSettings.myContactId : null;
 
 		if (myId) {
 			const myBalance = balances.get(myId) || 0;
@@ -120,7 +120,7 @@ export const toolHandlers: Record<string, Function> = {
 	},
 	get_all_contacts: async () => {
 		const contacts = await db.contacts.toArray();
-		let myId = userSettings.myContactId ? parseInt(userSettings.myContactId) : null;
+		const myId = userSettings.myContactId ? userSettings.myContactId : null;
 		return JSON.stringify(contacts.map((c) => ({ id: c.id, name: c.name, is_me: c.id === myId })));
 	},
 	get_all_categories: async () => {
@@ -165,23 +165,29 @@ export const toolHandlers: Record<string, Function> = {
 
 			// Prepara array per db
 			const splitValue = amount / splitParticipantIds.length;
-			const splits = splitParticipantIds.map((cid: number) => ({
+			const splits = splitParticipantIds.map((cid: string) => ({
 				contactId: cid,
 				value: splitValue
 			}));
 
 			let catName = 'Generale';
-			let realCatId = categoryId || 5;
+			const realCatId = categoryId;
 			if (realCatId) {
 				const cat = await db.categories.get(realCatId);
 				if (cat) catName = cat.name;
+			} else {
+				// Cerca la categoria Generale se non specificata
+				const allCats = await db.categories.toArray();
+				const genCat = allCats.find((c) => c.name === 'Generale');
+				if (genCat) catName = genCat.name;
 			}
 
 			const newExpId = await db.expenses.add({
+				id: (await import('uuidv7')).uuidv7(),
 				title,
 				amount,
 				date: new Date(),
-				categoryId: realCatId,
+				categoryId: realCatId || undefined,
 				category: catName,
 				groupId: groupId || undefined,
 				paidById: paidById,

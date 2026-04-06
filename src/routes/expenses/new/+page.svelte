@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uuidv7 } from 'uuidv7';
 	import { goto } from '$app/navigation';
 	import AttachmentEditor from '$lib/components/AttachmentEditor.svelte';
 	import SplitEditor from '$lib/components/SplitEditor.svelte';
@@ -38,7 +39,7 @@
 
 	let availableContacts = $derived.by(() => {
 		const contacts = contactsQuery.value || [];
-		const gId = groupId ? parseInt(groupId) : null;
+		const gId = groupId ? groupId : null;
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
@@ -64,13 +65,13 @@
 	});
 
 	function handleGroupChange() {
-		const gId = groupId ? parseInt(groupId) : null;
+		const gId = groupId ? groupId : null;
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
 				splits = group.memberIds.map((id) => ({ contactId: id, value: 0 }));
-				if (!paidById || !group.memberIds.includes(parseInt(paidById))) {
-					const myId = userSettings.myContactId ? parseInt(userSettings.myContactId) : null;
+				if (!paidById || !group.memberIds.includes(paidById)) {
+					const myId = userSettings.myContactId ? userSettings.myContactId : null;
 					paidById =
 						myId && group.memberIds.includes(myId)
 							? myId.toString()
@@ -158,16 +159,16 @@
 
 		loading = true;
 		try {
-			const catName =
-				categoriesQuery.value?.find((c) => c.id === parseInt(categoryId))?.name || 'Generale';
+			const catName = categoriesQuery.value?.find((c) => c.id === categoryId)?.name || 'Generale';
 			await db.expenses.add({
+				id: uuidv7(),
 				title,
 				amount,
 				date: new Date(date),
-				categoryId: parseInt(categoryId),
+				categoryId: categoryId,
 				category: catName,
-				groupId: groupId ? parseInt(groupId) : undefined,
-				paidById: parseInt(paidById),
+				groupId: groupId ? groupId : undefined,
+				paidById: paidById,
 				splitType,
 				splits: finalSplits,
 				attachments: attachments.length > 0 ? [...attachments] : undefined,
@@ -182,7 +183,7 @@
 			loading = false;
 		}
 	}
-	function getContactName(contactId: number) {
+	function getContactName(contactId: string) {
 		const name = contactsQuery.value?.find((c) => c.id === contactId)?.name || 'Sconosciuto';
 
 		if (userSettings.myContactId && contactId.toString() === userSettings.myContactId) {

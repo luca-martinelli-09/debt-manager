@@ -11,7 +11,7 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	const id = parseInt(page.params.id || '0');
+	const id = page.params.id || '';
 	let name = $state('');
 	let color = $state('#64748b');
 	let loading = $state(false);
