@@ -3,6 +3,8 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Home, Receipt, Settings, Sparkles, Tag, User, Users } from '@lucide/svelte';
 
+	const sidebar = Sidebar.useSidebar();
+
 	let items = $derived([
 		{ title: m.nav_dashboard(), url: '/', icon: Home },
 		{ title: m.nav_ai_assistant(), url: '/chat', icon: Sparkles },
@@ -24,7 +26,15 @@
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}
-									<a href={item.url} {...props}>
+									<a
+										href={item.url}
+										{...props}
+										onclick={() => {
+											if (sidebar.isMobile) {
+												sidebar.setOpenMobile(false);
+											}
+										}}
+									>
 										<item.icon />
 										<span>{item.title}</span>
 									</a>

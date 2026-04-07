@@ -1,4 +1,5 @@
 <script lang="ts">
+	import QRCodeScanner from '$lib/components/QRCodeScanner.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
@@ -14,6 +15,7 @@
 		Eye,
 		EyeOff,
 		Loader2,
+		QrCode,
 		ScanLine,
 		Share2,
 		Sparkles,
@@ -138,6 +140,7 @@
 	let isHost = $state(false);
 	let syncStatus = $state<string>(m.disconnected());
 	let PeerJS: any;
+	let showScanner = $state(false);
 
 	let geminiApiKeyInput = $state('');
 	let geminiModelInput = $state('gemini-2.5-flash');
@@ -182,16 +185,16 @@
 			// Filter to show only useful models (Gemini models, avoiding embedding/tuning specific ones)
 			availableModels = allModels
 				.filter(
-					(m) =>
-						m.name &&
-						m.name.includes('gemini') &&
-						!m.name.includes('vision') &&
-						!m.name.includes('embedding') &&
-						!m.name.includes('aqa')
+					(model) =>
+						model.name &&
+						model.name.includes('gemini') &&
+						!model.name.includes('vision') &&
+						!model.name.includes('embedding') &&
+						!model.name.includes('aqa')
 				)
-				.map((m) => ({
-					name: (m.name || '').replace('models/', ''),
-					description: m.description || m.displayName || m.name || ''
+				.map((model) => ({
+					name: (model.name || '').replace('models/', ''),
+					description: model.description || model.displayName || model.name || ''
 				}));
 
 			// If current model is not in list (or empty list), default to the first one or flash
@@ -423,9 +426,7 @@
 							{:else}
 								{#each availableModels as model}
 									<option value={model.name}>
-										{model.name.replace('models/', '')} - {model.description
-											? model.description.substring(0, 40) + '...'
-											: ''}
+										{model.description}
 									</option>
 								{/each}
 							{/if}
@@ -503,23 +504,34 @@
 					</p>
 					<div class="space-y-1">
 						<Label>{m.remote_sync_id()}</Label>
-						<InputGroup.Root>
-							<InputGroup.Input
-								type="text"
-								placeholder={m.sync_id_placeholder()}
-								bind:value={connectToId}
-							/>
-							<InputGroup.Addon align="inline-end">
-								<InputGroup.Button
-									variant="secondary"
-									onclick={connectAndReceive}
-									disabled={!connectToId || isConnecting}
-								>
+						<div class="flex flex-col gap-2 sm:flex-row">
+							<InputGroup.Root class="flex-1">
+								<InputGroup.Input
+									type="text"
+									placeholder={m.sync_id_placeholder()}
+									bind:value={connectToId}
+								/>
+								<InputGroup.Addon align="inline-end">
+									<InputGroup.Button
+										variant="ghost"
+										size="sm"
+										class="text-muted-foreground hover:bg-transparent"
+										onclick={() => (showScanner = true)}
+										title="Scan QR Code"
+									>
+										<QrCode class="h-4 w-4" />
+									</InputGroup.Button>
+								</InputGroup.Addon>
+							</InputGroup.Root>
+							<Button onclick={connectAndReceive} disabled={!connectToId || isConnecting}>
+								{#if isConnecting}
+									<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+								{:else}
 									<ScanLine class="mr-2 h-4 w-4" />
-									{m.request_and_receive()}
-								</InputGroup.Button>
-							</InputGroup.Addon>
-						</InputGroup.Root>
+								{/if}
+								{m.request_and_receive()}
+							</Button>
+						</div>
 					</div>
 					{#if syncStatus !== m.disconnected() && !isHost}
 						<p class="mt-2 text-sm font-medium text-primary">{syncStatus}</p>
@@ -528,6 +540,14 @@
 			</Tabs.Root>
 		</Card.Content>
 	</Card.Root>
+
+	<QRCodeScanner
+		bind:open={showScanner}
+		onScan={(id) => {
+			connectToId = id;
+			toast.success('ID scansionato con successo');
+		}}
+	/>
 
 	<Card.Root>
 		<Card.Header>
