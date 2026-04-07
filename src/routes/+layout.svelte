@@ -14,6 +14,10 @@
 <ModeWatcher />
 <Toaster position="top-center" richColors />
 
+<svelte:head>
+	<title>{m.app_title()}</title>
+</svelte:head>
+
 <Sidebar.Provider>
 	<AppSidebar />
 	<main class="relative flex min-h-screen flex-1 flex-col overflow-x-hidden">

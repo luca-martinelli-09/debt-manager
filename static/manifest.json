@@ -1,16 +1,67 @@
 {
   "name": "Debt Manager",
-  "short_name": "DebtMgr",
-  "description": "Gestisci i tuoi debiti e spese in modo privato e offline.",
+  "short_name": "Debts",
+  "description": "Manage your debts and expenses privately, securely, and offline.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "New Expense",
+      "short_name": "New Expense",
+      "description": "Quickly add a new expense or debt",
+      "url": "/expenses/new",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "AI Chat",
+      "short_name": "Chat",
+      "description": "Ask the AI assistant for help with your debts",
+      "url": "/chat",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Contacts",
+      "short_name": "Contacts",
+      "description": "Manage your creditors and debtors",
+      "url": "/contacts",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/expenses/new",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "attachments",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
 }
