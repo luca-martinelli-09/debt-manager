@@ -75,3 +75,58 @@ export function simplifyDebts(balancesMap: Map<string, number>): Debt[] {
 
 	return debts;
 }
+
+export function getDirectDebts(expenses: Expense[], settlements: Settlement[]): Debt[] {
+	const directDebts = new Map<string, number>(); // Key: "from->to"
+
+	expenses.forEach((expense) => {
+		const paidBy = expense.paidById;
+		expense.splits.forEach((split) => {
+			if (split.contactId === paidBy) return;
+
+			let share = 0;
+			if (expense.splitType === 'equally') {
+				share = expense.amount / expense.splits.length;
+			} else if (expense.splitType === 'unequally') {
+				share = split.value;
+			} else if (expense.splitType === 'percentage') {
+				share = (expense.amount * split.value) / 100;
+			}
+
+			if (share < 0.01) return;
+
+			const key = `${split.contactId}->${paidBy}`;
+			directDebts.set(key, (directDebts.get(key) || 0) + share);
+		});
+	});
+
+	// Subtract settlements
+	settlements.forEach((settlement) => {
+		const key = `${settlement.fromContactId}->${settlement.toContactId}`;
+		directDebts.set(key, (directDebts.get(key) || 0) - settlement.amount);
+	});
+
+	// Convert Map to Debt[] and net out A->B and B->A
+	const results: Debt[] = [];
+	const pairsProcessed = new Set<string>();
+
+	directDebts.forEach((amount, key) => {
+		if (pairsProcessed.has(key)) return;
+
+		const [from, to] = key.split('->');
+		const reverseKey = `${to}->${from}`;
+		const reverseAmount = directDebts.get(reverseKey) || 0;
+
+		const netAmount = amount - reverseAmount;
+		if (netAmount > 0.01) {
+			results.push({ from, to, amount: netAmount });
+		} else if (netAmount < -0.01) {
+			results.push({ from: to, to: from, amount: Math.abs(netAmount) });
+		}
+
+		pairsProcessed.add(key);
+		pairsProcessed.add(reverseKey);
+	});
+
+	return results;
+}

@@ -67,10 +67,15 @@
 
 	function handleGroupChange() {
 		const gId = groupId ? groupId : null;
+		const oldSplits = [...splits];
+
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
-				splits = group.memberIds.map((id) => ({ contactId: id, value: 0 }));
+				splits = group.memberIds.map((id) => {
+					const existing = oldSplits.find((s) => s.contactId === id);
+					return { contactId: id, value: existing ? existing.value : 0 };
+				});
 				if (!paidById || !group.memberIds.includes(paidById)) {
 					const myId = userSettings.myContactId ? userSettings.myContactId : null;
 					paidById =
@@ -81,7 +86,10 @@
 			}
 		} else {
 			const contacts = contactsQuery.value || [];
-			splits = contacts.map((c) => ({ contactId: c.id!, value: 0 }));
+			splits = contacts.map((c) => {
+				const existing = oldSplits.find((s) => s.contactId === c.id);
+				return { contactId: c.id!, value: existing ? existing.value : 0 };
+			});
 			const myId = userSettings.myContactId;
 			if (!paidById || !contacts.some((c) => c.id?.toString() === paidById)) {
 				paidById =

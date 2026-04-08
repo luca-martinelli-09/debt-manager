@@ -8,12 +8,19 @@
 	import { db } from '$lib/db';
 	import { contactsQuery } from '$lib/db.svelte';
 	import * as m from '$lib/paraglide/messages.js';
-	import { setGeminiSettings, setMyContactId, userSettings } from '$lib/settings.svelte';
+	import { Switch } from '$lib/components/ui/switch/index.js';
+	import {
+		setGeminiSettings,
+		setMyContactId,
+		setSimplifyDebts,
+		userSettings
+	} from '$lib/settings.svelte';
 	import {
 		AlertTriangle,
 		Download,
 		Eye,
 		EyeOff,
+		Layers,
 		Loader2,
 		QrCode,
 		ScanLine,
@@ -333,6 +340,30 @@
 <h1 class="mb-6 text-2xl font-bold">{m.nav_settings()}</h1>
 
 <div class="grid max-w-4xl gap-6">
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2">
+				<Layers class="h-5 w-5" />
+				{m.settings()}
+			</Card.Title>
+		</Card.Header>
+		<Card.Content class="space-y-6">
+			<div class="flex items-center justify-between space-x-2">
+				<div class="flex flex-col space-y-1">
+					<Label for="simplify-debts">{m.simplify_debts_label()}</Label>
+					<p class="text-sm text-muted-foreground">
+						{m.simplify_debts_desc()}
+					</p>
+				</div>
+				<Switch
+					id="simplify-debts"
+					checked={userSettings.simplifyDebts}
+					onCheckedChange={setSimplifyDebts}
+				/>
+			</div>
+		</Card.Content>
+	</Card.Root>
+
 	<Card.Root>
 		<Card.Header>
 			<Card.Title class="flex items-center gap-2">

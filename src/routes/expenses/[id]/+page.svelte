@@ -77,10 +77,15 @@
 
 	function handleGroupChange() {
 		const gId = groupId ? groupId : null;
+		const oldSplits = [...splits];
+
 		if (gId) {
 			const group = groupsQuery.value?.find((g) => g.id === gId);
 			if (group) {
-				splits = group.memberIds.map((memberId) => ({ contactId: memberId, value: 0 }));
+				splits = group.memberIds.map((memberId) => {
+					const existing = oldSplits.find((s) => s.contactId === memberId);
+					return { contactId: memberId, value: existing ? existing.value : 0 };
+				});
 				if (!paidById || !group.memberIds.includes(paidById)) {
 					const myId = userSettings.myContactId ? userSettings.myContactId : null;
 					paidById =
@@ -91,7 +96,10 @@
 			}
 		} else {
 			const contacts = contactsQuery.value || [];
-			splits = contacts.map((c) => ({ contactId: c.id!, value: 0 }));
+			splits = contacts.map((c) => {
+				const existing = oldSplits.find((s) => s.contactId === c.id);
+				return { contactId: c.id!, value: existing ? existing.value : 0 };
+			});
 			const myId = userSettings.myContactId;
 			if (!paidById || !contacts.some((c) => c.id?.toString() === paidById)) {
 				paidById =
@@ -273,7 +281,7 @@
 		<Tabs.Root value="modifica" class="space-y-6">
 			<Tabs.List class="grid w-full grid-cols-2">
 				<Tabs.Trigger value="modifica">{m.edit()}</Tabs.Trigger>
-				<Tabs.Trigger value="saldi">{m.details()} & Ripartizioni</Tabs.Trigger>
+				<Tabs.Trigger value="saldi">{m.details_and_splits()}</Tabs.Trigger>
 			</Tabs.List>
 
 			<Tabs.Content value="modifica">
@@ -393,10 +401,7 @@
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>{m.who_owes_who()}</Card.Title>
-						<Card.Description
-							>Visualizza le ripartizioni del costo e segna un pagamento veloce per chiudere il
-							debito di questo scontrino. I pagamenti sono generali.</Card.Description
-						>
+						<Card.Description>{m.who_owes_who_desc()}</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						{#if computedDebts.length === 0}

@@ -166,6 +166,8 @@
 	"expense_updated": "Expense updated successfully",
 	"edit": "Edit",
 	"details_and_splits": "Details & Splits",
+	"simplify_debts_label": "Simplify Debts",
+	"simplify_debts_desc": "Optimize accounts between people to minimize the total number of transactions.",
 	"edit_expense": "Edit Expense",
 	"who_paid": "Who paid?",
 	"update_expense": "Update Expense",

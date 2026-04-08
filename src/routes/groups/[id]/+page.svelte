@@ -11,7 +11,8 @@
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { db } from '$lib/db';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
-	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { calculateBalances, getDirectDebts, simplifyDebts } from '$lib/utils/debt';
+	import { userSettings } from '$lib/settings.svelte';
 	import { ArrowLeft, Check, Receipt, Trash2, Users, Wallet } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -48,7 +49,13 @@
 		return calculateBalances(groupExpenses, groupSettlements, currentGroup.memberIds);
 	});
 
-	let simplifiedDebts = $derived(simplifyDebts(groupBalances));
+	let simplifiedDebts = $derived.by(() => {
+		if (userSettings.simplifyDebts) {
+			return simplifyDebts(groupBalances);
+		} else {
+			return getDirectDebts(groupExpenses, groupSettlements);
+		}
+	});
 
 	function getContactName(id: string) {
 		return contactsQuery.value?.find((c) => c.id === id)?.name || m.unknown_contact();
@@ -192,8 +199,14 @@
 
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>{m.simplified_debts()}</Card.Title>
-						<Card.Description>{m.optimized_accounts()}</Card.Description>
+						<Card.Title
+							>{userSettings.simplifyDebts
+								? m.simplified_debts()
+								: m.debts_and_balances()}</Card.Title
+						>
+						<Card.Description
+							>{userSettings.simplifyDebts ? m.optimized_accounts() : ''}</Card.Description
+						>
 					</Card.Header>
 					<Card.Content>
 						{#if simplifiedDebts.length === 0}

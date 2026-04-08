@@ -3,7 +3,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import { userSettings } from '$lib/settings.svelte';
-	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { calculateBalances, getDirectDebts, simplifyDebts } from '$lib/utils/debt';
 	import { ArrowDownLeft, ArrowUpRight, Wallet } from '@lucide/svelte';
 
 	let myId = $derived(userSettings.myContactId ? userSettings.myContactId : null);
@@ -29,17 +29,28 @@
 		const expenses = expensesQuery.value;
 		const settlements = settlementsQuery.value;
 		if (!contacts || !expenses || !settlements) return 0;
+
+		if (myId) {
+			let debts = [];
+			if (userSettings.simplifyDebts) {
+				const balances = calculateBalances(
+					expenses,
+					settlements,
+					contacts.map((c) => c.id!)
+				);
+				debts = simplifyDebts(balances);
+			} else {
+				debts = getDirectDebts(expenses, settlements);
+			}
+			const myCredits = debts.filter((d) => d.to === myId);
+			return myCredits.reduce((acc, curr) => acc + curr.amount, 0);
+		}
+
 		const balances = calculateBalances(
 			expenses,
 			settlements,
 			contacts.map((c) => c.id!)
 		);
-
-		if (myId) {
-			const myDebts = simplifyDebts(balances).filter((d) => d.to === myId);
-			return myDebts.reduce((acc, curr) => acc + curr.amount, 0);
-		}
-
 		return Array.from(balances.values())
 			.filter((b) => b > 0)
 			.reduce((acc, curr) => acc + curr, 0);
@@ -50,16 +61,28 @@
 		const expenses = expensesQuery.value;
 		const settlements = settlementsQuery.value;
 		if (!contacts || !expenses || !settlements) return 0;
+
+		if (myId) {
+			let debts = [];
+			if (userSettings.simplifyDebts) {
+				const balances = calculateBalances(
+					expenses,
+					settlements,
+					contacts.map((c) => c.id!)
+				);
+				debts = simplifyDebts(balances);
+			} else {
+				debts = getDirectDebts(expenses, settlements);
+			}
+			const myDebts = debts.filter((d) => d.from === myId);
+			return myDebts.reduce((acc, curr) => acc + curr.amount, 0);
+		}
+
 		const balances = calculateBalances(
 			expenses,
 			settlements,
 			contacts.map((c) => c.id!)
 		);
-
-		if (myId) {
-			const myDebts = simplifyDebts(balances).filter((d) => d.from === myId);
-			return myDebts.reduce((acc, curr) => acc + curr.amount, 0);
-		}
 
 		return Math.abs(
 			Array.from(balances.values())

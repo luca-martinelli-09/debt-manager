@@ -5,7 +5,7 @@
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { userSettings } from '$lib/settings.svelte';
-	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { calculateBalances, getDirectDebts, simplifyDebts } from '$lib/utils/debt';
 	import { Edit, Plus, Trash2, User } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -15,8 +15,13 @@
 	let allDebts = $derived.by(() => {
 		if (!contactsQuery.value || !expensesQuery.value || !settlementsQuery.value) return [];
 		const allIds = contactsQuery.value.map((c) => c.id!);
-		const balances = calculateBalances(expensesQuery.value, settlementsQuery.value, allIds);
-		return simplifyDebts(balances);
+
+		if (userSettings.simplifyDebts) {
+			const balances = calculateBalances(expensesQuery.value, settlementsQuery.value, allIds);
+			return simplifyDebts(balances);
+		} else {
+			return getDirectDebts(expensesQuery.value, settlementsQuery.value);
+		}
 	});
 
 	function getNetBalance(contactId: string) {

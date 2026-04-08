@@ -5,6 +5,7 @@ export const userSettings = $state({
 	myContactId: '',
 	geminiApiKey: '',
 	geminiModel: 'gemini-2.5-flash',
+	simplifyDebts: true,
 	isLoaded: false
 });
 
@@ -18,6 +19,9 @@ if (browser) {
 			userSettings.myContactId = settingsMap.get('myContactId') || '';
 			userSettings.geminiApiKey = settingsMap.get('geminiApiKey') || '';
 			userSettings.geminiModel = settingsMap.get('geminiModel') || 'gemini-2.5-flash';
+			userSettings.simplifyDebts = settingsMap.has('simplifyDebts')
+				? settingsMap.get('simplifyDebts') === 'true'
+				: true;
 			userSettings.isLoaded = true;
 		})
 		.catch((err) => {
@@ -34,6 +38,13 @@ export async function setMyContactId(id: string) {
 		} else {
 			await db.settings.delete('myContactId');
 		}
+	}
+}
+
+export async function setSimplifyDebts(simplify: boolean) {
+	userSettings.simplifyDebts = simplify;
+	if (browser) {
+		await db.settings.put({ key: 'simplifyDebts', value: simplify ? 'true' : 'false' });
 	}
 }
 

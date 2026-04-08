@@ -10,7 +10,8 @@
 	import { db } from '$lib/db';
 	import { contactsQuery, expensesQuery, settlementsQuery } from '$lib/db.svelte';
 	import * as m from '$lib/paraglide/messages.js';
-	import { calculateBalances, simplifyDebts } from '$lib/utils/debt';
+	import { calculateBalances, getDirectDebts, simplifyDebts } from '$lib/utils/debt';
+	import { userSettings } from '$lib/settings.svelte';
 	import { ArrowLeft, Trash2, User, Wallet } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -41,8 +42,15 @@
 	let contactDebts = $derived.by(() => {
 		if (!contactsQuery.value || !expensesQuery.value || !settlementsQuery.value) return [];
 		const allIds = contactsQuery.value.map((c) => c.id!);
-		const balances = calculateBalances(expensesQuery.value, settlementsQuery.value, allIds);
-		const debts = simplifyDebts(balances);
+		let debts = [];
+
+		if (userSettings.simplifyDebts) {
+			const balances = calculateBalances(expensesQuery.value, settlementsQuery.value, allIds);
+			debts = simplifyDebts(balances);
+		} else {
+			debts = getDirectDebts(expensesQuery.value, settlementsQuery.value);
+		}
+
 		// Filtra solo i debiti che coinvolgono questo contatto
 		return debts.filter((d) => d.from === id || d.to === id);
 	});
@@ -147,7 +155,9 @@
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>{m.situation_with()} {name}</Card.Title>
-						<Card.Description>{m.cross_group_debts()}</Card.Description>
+						<Card.Description>
+							{userSettings.simplifyDebts ? m.cross_group_debts() : ''}
+						</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						{#if contactDebts.length === 0}

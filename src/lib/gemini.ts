@@ -77,14 +77,20 @@ export const systemInstruction = m.system_instruction();
 export const toolHandlers: Record<string, Function> = {
 	get_dashboard_summary: async () => {
 		// Logica semplificata basata sui calcoli di debt
-		const { calculateBalances, simplifyDebts } = await import('./utils/debt');
+		const { calculateBalances, simplifyDebts, getDirectDebts } = await import('./utils/debt');
 		const expenses = await db.expenses.toArray();
 		const settlements = await db.settlements.toArray();
 		const contacts = await db.contacts.toArray();
 
 		const allIds = contacts.map((c) => c.id).filter((c) => c !== undefined);
 		const balances = calculateBalances(expenses, settlements, allIds);
-		const debts = simplifyDebts(balances);
+
+		let debts = [];
+		if (userSettings.simplifyDebts) {
+			debts = simplifyDebts(balances);
+		} else {
+			debts = getDirectDebts(expenses, settlements);
+		}
 
 		let myId = userSettings.myContactId ? userSettings.myContactId : null;
 
